@@ -1,0 +1,3 @@
+android.hardware.camera.provider@2.5::ICameraProvider/default hwbinder 64 running pid=4201
+android.hardware.sensors@2.1::ISensors/default hwbinder 64 lazy
+vendor.synthetic.hardware.feature@1.0::IFeature/default passthrough 64

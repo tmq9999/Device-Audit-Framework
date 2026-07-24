@@ -1,0 +1,5 @@
+android.hardware.camera.provider.ICameraProvider/legacy/0
+android.hardware.sensors.ISensors/default
+android.hardware.health.IHealth/default
+camera
+sensorservice

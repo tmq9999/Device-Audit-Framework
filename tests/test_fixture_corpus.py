@@ -10,21 +10,29 @@ from device_audit.analysis import analyze_bundle
 from device_audit.bundle import load_evidence_bundle
 
 FIXTURE_ROOT = Path(__file__).parent / "fixtures"
-EXPECTED_FIXTURE_COUNT = 119
-EXPECTED_FIXTURE_DIGEST = "6a5eefef6d17de43211dafd98748cfa3192b7a765074a47d3c2ea4d7fd731055"
+EXPECTED_FIXTURE_COUNT = 189
+EXPECTED_FIXTURE_DIGEST = "0cd70c408dece9f517ecbb9feada1af045b035ce719e52d8c254c098dd8af7d2"
 REQUIRED_FIXTURE_FAMILIES = {
     "aosp_emulator",
     "aosp_emulator_phase2",
     "bundles/schema_1_0",
     "bundles/schema_2_0",
+    "bundles/schema_3_0",
     "malformed",
     "malformed_phase2",
     "permission_denied_phase2",
+    "permission_denied_phase3",
     "pixel_phase2",
+    "pixel_phase3",
     "pixel_reference",
     "samsung_phase2",
+    "samsung_phase3",
     "vmos_android13",
     "vmos_phase2",
+    "vmos_phase3",
+    "aosp_emulator_phase3",
+    "lineage_phase3",
+    "malformed_phase3",
 }
 
 
@@ -61,16 +69,18 @@ def test_golden_fixture_corpus_covers_every_release_family() -> None:
 
 
 @pytest.mark.parametrize(
-    ("fixture_name", "expected_schema", "expected_display_status"),
+    ("fixture_name", "expected_schema", "expected_display_status", "expected_phase3_status"),
     (
-        ("schema_1_0", "1.0", "not_evaluated"),
-        ("schema_2_0", "2.0", "observed"),
+        ("schema_1_0", "1.0", "not_evaluated", "not_evaluated"),
+        ("schema_2_0", "2.0", "observed", "not_evaluated"),
+        ("schema_3_0", "3.0", "not_evaluated", "observed"),
     ),
 )
 def test_static_golden_bundle_replays_with_compatible_schema(
     fixture_name: str,
     expected_schema: str,
     expected_display_status: str,
+    expected_phase3_status: str,
     tmp_path: Path,
 ) -> None:
     bundle_dir = FIXTURE_ROOT / "bundles" / fixture_name
@@ -83,6 +93,7 @@ def test_static_golden_bundle_replays_with_compatible_schema(
     assert report["bundle_schema_version"] == expected_schema
     assert report["source_bundle_digest"] == manifest["bundle_digest"]
     assert report["sections"]["display"]["status"] == expected_display_status
+    assert report["sections"]["camera"]["status"] == expected_phase3_status
     assert outcome.collector_errors == 0
     for artifact in bundle_dir.rglob("*"):
         if artifact.is_file():

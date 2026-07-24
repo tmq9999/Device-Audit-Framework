@@ -15,12 +15,15 @@ truth tables and are never inferred from the target.
   "native_cpu": {},
   "display": {},
   "telephony": {},
-  "packages": {}
+  "packages": {},
+  "camera": {},
+  "sensors": {},
+  "hal": {}
 }
 ```
 
-`schema_version` must begin with `1.` or `2.`. `name` is required. All other
-sections are optional and default to empty reference data.
+`schema_version` must begin with `1.`, `2.`, or `3.`. `name` is required. All
+other sections are optional and default to empty reference data.
 
 ## Identity and build
 
@@ -77,6 +80,49 @@ Phase 2 supports optional display, telephony, and package expectations:
 All optional reference lists are empty by default. Regex values are validated
 before analysis. Package names use a restrictive Android package-name
 pattern.
+
+## Phase 3 hardware references
+
+Phase 3 references are opt-in and compare only normalized inventory fields:
+
+```json
+{
+  "camera": {
+    "minimum_camera_count": 2,
+    "required_facing": ["front", "back"],
+    "required_camera_ids": ["0", "1"],
+    "allowed_hardware_levels": ["FULL", "LEVEL_3"],
+    "required_capabilities": ["BACKWARD_COMPATIBLE", "LOGICAL_MULTI_CAMERA"]
+  },
+  "sensors": {
+    "minimum_sensor_count": 3,
+    "required_types": ["android.sensor.accelerometer"],
+    "allowed_vendors": ["Synthetic Sensors"]
+  },
+  "hal": {
+    "required_interfaces": ["android.hardware.camera.provider"],
+    "required_families": ["android.hardware.camera"],
+    "allowed_transports": ["hwbinder", "binder", "passthrough"]
+  }
+}
+```
+
+Supported camera fields are `minimum_camera_count`, `required_facing`
+(`front`, `back`, `external`, or `unknown`), `required_camera_ids`,
+`allowed_hardware_levels` (`LEGACY`, `LIMITED`, `FULL`, `LEVEL_3`, `EXTERNAL`,
+or `UNKNOWN`), and `required_capabilities`. Supported sensor fields are
+`minimum_sensor_count`, `required_types`, and `allowed_vendors`. Type keys
+prefer the service's declared Android string type and fall back to a stable
+name for recognized numeric types. Supported HAL
+fields are `required_interfaces`, `required_families`, and
+`allowed_transports` (`hwbinder`, `binder`, `vndbinder`, `passthrough`, or
+`unknown`).
+
+Omitting a Phase 3 field means inventory only. The framework does not infer
+camera-to-device identity, sensor-to-SoC compatibility, or the meaning of an
+inventoried DRM, KeyMint, or other native service. Unsupported commands,
+permission errors, timeouts, and incomplete parser output are not mismatch
+evidence.
 
 ## Findings
 

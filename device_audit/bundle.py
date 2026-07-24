@@ -79,17 +79,23 @@ def write_evidence_bundle(
         "commands_jsonl_sha256": sha256_text(commands_jsonl),
         "audit_log_sha256": sha256_text(audit_log),
     }
-    if schema_version == "2.0":
-        manifest["collector_states"] = dict(
-            collector_states
-            or {
-                "display": "not_evaluated",
-                "telephony": "not_evaluated",
-                "packages": "not_evaluated",
-                "magisk": "not_evaluated",
-                "runtime_markers": "not_evaluated",
-            }
-        )
+    if schema_version in {"2.0", "3.0"}:
+        default_states = {
+            "display": "not_evaluated",
+            "telephony": "not_evaluated",
+            "packages": "not_evaluated",
+            "magisk": "not_evaluated",
+            "runtime_markers": "not_evaluated",
+        }
+        if schema_version == "3.0":
+            default_states.update(
+                {
+                    "camera": "not_evaluated",
+                    "sensors": "not_evaluated",
+                    "hal": "not_evaluated",
+                }
+            )
+        manifest["collector_states"] = dict(collector_states or default_states)
     manifest["bundle_digest"] = _manifest_digest(manifest)
     (output_dir / "evidence.json").write_text(_json_text(manifest), encoding="utf-8", newline="\n")
     (output_dir / "commands.jsonl").write_text(commands_jsonl, encoding="utf-8", newline="\n")
@@ -107,7 +113,7 @@ def load_evidence_bundle(bundle_dir: Path) -> dict[str, Any]:
     except (OSError, json.JSONDecodeError) as error:
         raise BundleIntegrityError(f"unable to read evidence manifest: {error}") from error
     schema_version = manifest.get("schema_version")
-    if schema_version not in {"1.0", "2.0"} or manifest.get("bundle_type") != "device-audit-evidence":
+    if schema_version not in {"1.0", "2.0", "3.0"} or manifest.get("bundle_type") != "device-audit-evidence":
         raise BundleIntegrityError("unsupported evidence bundle schema")
     _validate_manifest_metadata(manifest)
     stored_digest = manifest.get("bundle_digest")
@@ -118,8 +124,8 @@ def load_evidence_bundle(bundle_dir: Path) -> dict[str, Any]:
         raise BundleIntegrityError("evidence manifest commands must be a list")
     for command in commands:
         _validate_command_entry(command)
-    if schema_version == "2.0":
-        _validate_collector_states(manifest.get("collector_states"))
+    if schema_version in {"2.0", "3.0"}:
+        _validate_collector_states(manifest.get("collector_states"), schema_version)
     _verify_metadata_artifact(bundle_dir, "commands.jsonl", manifest.get("commands_jsonl_sha256"))
     _verify_metadata_artifact(bundle_dir, "audit.log", manifest.get("audit_log_sha256"))
     _verify_commands_jsonl(bundle_dir / "commands.jsonl", commands)
@@ -133,6 +139,7 @@ def load_evidence_bundle(bundle_dir: Path) -> dict[str, Any]:
                 raise BundleIntegrityError(f"missing evidence artifact: {command[path_key]}")
             if sha256_text(path.read_text(encoding="utf-8")) != command[digest_key]:
                 raise BundleIntegrityError(f"artifact digest mismatch: {command[path_key]}")
+    _verify_declared_raw_artifacts(bundle_dir, commands)
     return manifest
 
 
@@ -232,6 +239,7 @@ def _validate_command_entry(command: Any) -> None:
         "observed",
         "timeout",
         "permission_denied",
+        "unsupported",
         "unavailable",
         "parse_error",
         "not_evaluated",
@@ -254,15 +262,43 @@ def _validate_manifest_metadata(manifest: dict[str, Any]) -> None:
         raise BundleIntegrityError("evidence manifest is missing generated_at")
 
 
-def _validate_collector_states(value: Any) -> None:
+def _validate_collector_states(value: Any, schema_version: str) -> None:
     if not isinstance(value, dict):
         raise BundleIntegrityError("evidence manifest collector_states must be an object")
     expected_sections = {"display", "telephony", "packages", "magisk", "runtime_markers"}
+    if schema_version == "3.0":
+        expected_sections.update({"camera", "sensors", "hal"})
     if set(value) != expected_sections:
         raise BundleIntegrityError("evidence manifest collector_states is incomplete")
-    valid_states = {"observed", "timeout", "permission_denied", "unavailable", "parse_error", "not_evaluated"}
+    valid_states = {
+        "observed",
+        "timeout",
+        "permission_denied",
+        "unsupported",
+        "unavailable",
+        "parse_error",
+        "not_evaluated",
+    }
     if not all(isinstance(state, str) and state in valid_states for state in value.values()):
         raise BundleIntegrityError("evidence manifest collector_states has an invalid value")
+
+def _verify_declared_raw_artifacts(bundle_dir: Path, commands: list[Any]) -> None:
+    declared = {
+        relative_path
+        for command in commands
+        for relative_path in (command["stdout_path"], command["stderr_path"])
+    }
+    raw_dir = bundle_dir / "raw"
+    if not raw_dir.exists():
+        return
+    actual = {
+        path.relative_to(bundle_dir).as_posix()
+        for path in raw_dir.rglob("*")
+        if path.is_file()
+    }
+    undeclared = sorted(actual - declared)
+    if undeclared:
+        raise BundleIntegrityError(f"undeclared evidence artifacts: {', '.join(undeclared)}")
 
 
 def _timestamp() -> str:

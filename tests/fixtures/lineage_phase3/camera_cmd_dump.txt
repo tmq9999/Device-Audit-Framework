@@ -1,0 +1,4 @@
+Camera ID: 0
+Capabilities: RAW, LOGICAL_MULTI_CAMERA
+Camera ID: 1
+Capabilities: BACKWARD_COMPATIBLE

@@ -118,6 +118,9 @@ def _add_capture_arguments(parser: argparse.ArgumentParser) -> None:
         action="store_true",
         help="Skip filesystem and runtime marker collectors",
     )
+    parser.add_argument("--skip-camera", action="store_true", help="Skip camera-service inventory")
+    parser.add_argument("--skip-sensors", action="store_true", help="Skip sensorservice inventory")
+    parser.add_argument("--skip-hal", action="store_true", help="Skip HAL and native-service inventory")
     parser.add_argument(
         "--package",
         action="append",
@@ -154,5 +157,8 @@ def _capture_options(namespace: argparse.Namespace) -> CaptureOptions:
         skip_packages=namespace.skip_packages,
         skip_magisk=namespace.skip_magisk,
         skip_runtime_markers=namespace.skip_runtime_markers,
+        skip_camera=namespace.skip_camera,
+        skip_sensors=namespace.skip_sensors,
+        skip_hal=namespace.skip_hal,
         packages=tuple(namespace.package),
     )

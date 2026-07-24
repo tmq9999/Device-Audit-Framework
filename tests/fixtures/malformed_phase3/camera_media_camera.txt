@@ -1,0 +1,11 @@
+Camera service status: ACTIVE
+Number of camera devices: two
+Camera ID: broken-camera
+Facing: SIDEWAYS
+Orientation: ninety
+Hardware level: FUTURE_LEVEL
+Flash available: maybe
+Capabilities: UNKNOWN_CAPABILITY
+Output sizes: 99999xbroken
+FPS ranges: [fast, faster]
+Camera metadata truncated...

@@ -16,7 +16,8 @@ _PHONE_PATTERN = re.compile(
 _LABELED_IDENTIFIER_PATTERN = re.compile(
     r"(?i)(\b(?:m?imei(?:s)?|m?imsi|m?iccid|m?msisdn|m?subscriber(?:[ _-]?id)?|m?sim(?:[ _-]?serial)?|"
     r"android[ _-]?id|gaid|advertising[ _-]?id|line1(?:[ _-]?number)?|device[ _-]?id|"
-    r"phone(?:[ _-]?number)?|serial(?:[ _-]?(?:no|number))?)\b\s*[:=]?\s*)"
+    r"account(?:[ _-]?(?:id|name))?|client(?:[ _-]?(?:id|token))|auth(?:entication)?[ _-]?token|"
+    r"access[ _-]?token|phone(?:[ _-]?number)?|serial(?:[ _-]?(?:no|number))?)\b\s*[:=]?\s*)"
     r"([A-Za-z0-9._:+-]{6,})"
 )
 _SENSITIVE_PROPERTY_PATTERN = re.compile(
@@ -27,6 +28,10 @@ _SENSITIVE_ASSIGNMENT_PATTERN = re.compile(
     r"(?im)(^[^=\r\n]*(?:serial|imei|imsi|iccid|msisdn|subscriber|sim[ _.-]?serial|"
     r"android[ _.-]?id|gaid|advertising[ _.-]?id|email|phone|line1|device[ _.-]?id)[^=\r\n]*=)([^\r\n]*)$"
 )
+_BEARER_TOKEN_PATTERN = re.compile(r"(?i)(\bbearer\s+)[A-Za-z0-9._~+/=-]{12,}")
+_WINDOWS_USER_PATH_PATTERN = re.compile(r"(?i)([A-Z]:\\Users\\)[^\\\r\n\s]+")
+_POSIX_USER_PATH_PATTERN = re.compile(r"(?i)(/(?:home|Users)/)[^/\s]+")
+_ANDROID_USER_PATH_PATTERN = re.compile(r"(?i)(/(?:data/user|storage/emulated)/)\d+(?=/)")
 
 
 def redact_text(text: str, sensitive_values: Iterable[str] = ()) -> str:
@@ -37,7 +42,11 @@ def redact_text(text: str, sensitive_values: Iterable[str] = ()) -> str:
     without_emails = _EMAIL_PATTERN.sub("<redacted-email>", assignment_redacted)
     without_uuids = _UUID_PATTERN.sub("<redacted-uuid>", without_emails)
     without_phone_numbers = _PHONE_PATTERN.sub("<redacted-phone>", without_uuids)
-    redacted = _LABELED_IDENTIFIER_PATTERN.sub(r"\1<redacted>", without_phone_numbers)
+    without_bearer_tokens = _BEARER_TOKEN_PATTERN.sub(r"\1<redacted-token>", without_phone_numbers)
+    without_windows_users = _WINDOWS_USER_PATH_PATTERN.sub(r"\1<redacted-user>", without_bearer_tokens)
+    without_posix_users = _POSIX_USER_PATH_PATTERN.sub(r"\1<redacted-user>", without_windows_users)
+    without_android_users = _ANDROID_USER_PATH_PATTERN.sub(r"\1<redacted-user>", without_posix_users)
+    redacted = _LABELED_IDENTIFIER_PATTERN.sub(r"\1<redacted>", without_android_users)
     for value in sorted({value for value in sensitive_values if value}, key=len, reverse=True):
         redacted = redacted.replace(value, "<redacted-serial>")
     return redacted

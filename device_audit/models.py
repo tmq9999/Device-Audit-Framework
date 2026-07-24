@@ -157,6 +157,109 @@ class KernelInfo:
     lineage: str | None
     architecture: str | None = None
 
+@dataclass(frozen=True)
+class CameraDevice:
+    """Bounded normalized summary for one observable camera device."""
+
+    id: str
+    facing: str
+    orientation: int | None
+    hardware_level: str
+    physical_ids: tuple[str, ...]
+    flash_available: bool | None
+    capability_names: tuple[str, ...]
+    output_format_count: int
+    representative_output_sizes: tuple[str, ...]
+    fps_ranges: tuple[tuple[int, int], ...]
+    provider_name: str | None = None
+    device_version: str | None = None
+
+@dataclass(frozen=True)
+class CameraInventory:
+    """Read-only camera-service inventory with deterministic bounds."""
+
+    camera_count: int
+    logical_camera_count: int
+    physical_camera_count: int
+    cameras: tuple[CameraDevice, ...]
+    concurrent_combinations: tuple[tuple[str, ...], ...]
+    active_client_count: int | None
+    service_status: str | None
+    provider_names: tuple[str, ...]
+    device_versions: tuple[str, ...]
+    parse_warnings: tuple[str, ...]
+
+@dataclass(frozen=True)
+class SensorDevice:
+    """Bounded normalized summary for one sensorservice entry."""
+
+    handle: str
+    name: str
+    vendor: str | None
+    version: int | None
+    type_value: int | None
+    string_type: str | None
+    normalized_type: str
+    reporting_mode: str | None
+    wake_up: bool | None
+    dynamic: bool | None
+    maximum_range: float | None
+    resolution: float | None
+    power: float | None
+    minimum_delay: int | None
+    maximum_delay: int | None
+    fifo_reserved_count: int | None
+    fifo_maximum_count: int | None
+    required_permission: str | None
+
+@dataclass(frozen=True)
+class SensorInventory:
+    """Read-only sensorservice inventory without collecting sensor samples."""
+
+    sensor_count: int
+    sensors: tuple[SensorDevice, ...]
+    type_counts: Mapping[str, int]
+    vendor_counts: Mapping[str, int]
+    wakeup_sensor_count: int
+    dynamic_sensor_count: int
+    active_sensor_count: int | None
+    active_connection_count: int | None
+    service_status: str | None
+    parse_warnings: tuple[str, ...]
+
+@dataclass(frozen=True)
+class HalInterface:
+    """One normalized HIDL, AIDL, binder, or passthrough interface."""
+
+    family: str
+    full_interface: str
+    version: str | None
+    instance: str | None
+    transport: str
+    architecture: str | None
+    service_state: str | None
+    source: str
+    server_pid: int | None = None
+    client_pids: tuple[int, ...] = ()
+    thread_usage: str | None = None
+
+@dataclass(frozen=True)
+class HalInventory:
+    """Bounded HAL and native-service inventory."""
+
+    hal_count: int
+    hidl_count: int
+    aidl_count: int
+    passthrough_count: int
+    binderized_count: int
+    lazy_count: int
+    families: tuple[str, ...]
+    interfaces: tuple[HalInterface, ...]
+    binder_service_count: int
+    dumpsys_service_count: int
+    hal_properties: Mapping[str, str]
+    parse_warnings: tuple[str, ...]
+
 
 @dataclass(frozen=True)
 class PackageExpectation:
@@ -187,6 +290,17 @@ class ExpectedProfile:
     telephony_allowed_ril_vendors: tuple[str, ...] = ()
     telephony_allowed_baseband_patterns: tuple[str, ...] = ()
     package_expectations: Mapping[str, PackageExpectation] = field(default_factory=dict)
+    camera_minimum_count: int | None = None
+    camera_required_facing: tuple[str, ...] = ()
+    camera_required_ids: tuple[str, ...] = ()
+    camera_allowed_hardware_levels: tuple[str, ...] = ()
+    camera_required_capabilities: tuple[str, ...] = ()
+    sensors_minimum_count: int | None = None
+    sensors_required_types: tuple[str, ...] = ()
+    sensors_allowed_vendors: tuple[str, ...] = ()
+    hal_required_interfaces: tuple[str, ...] = ()
+    hal_required_families: tuple[str, ...] = ()
+    hal_allowed_transports: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)

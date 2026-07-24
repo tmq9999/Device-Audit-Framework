@@ -1,0 +1,4 @@
+Camera ID: 0
+Stream configuration: format=YUV_420_888 output size=1920x1080
+Camera ID: 1
+Stream configuration: format=YUV_420_888 output size=1280x720

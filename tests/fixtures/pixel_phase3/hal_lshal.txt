@@ -1,0 +1,4 @@
+android.hardware.camera.provider@2.7::ICameraProvider/internal/0 hwbinder 64 running pid=1201 threads=2/4
+android.hardware.sensors@2.1::ISensors/default hwbinder 64 running pid=1202
+android.hardware.graphics.composer@2.4::IComposer/default passthrough 64
+android.hardware.power@1.3::IPower/default hwbinder 64 lazy

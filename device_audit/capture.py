@@ -10,12 +10,15 @@ from device_audit.bundle import command_status, write_evidence_bundle
 from device_audit.collector_api import CollectionRequest, CollectorRegistry, CommandSpec
 from device_audit.collectors import (
     BUILTIN_COLLECTORS,
+    CAMERA_COMMANDS,
     DEFAULT_PACKAGES,
     DISPLAY_COMMANDS,
+    HAL_COMMANDS,
     MAGISK_COMMANDS,
     PHASE_ONE_COMMANDS,
     ROOT_RUNTIME_COMMANDS,
     RUNTIME_COMMANDS,
+    SENSOR_COMMANDS,
     TELEPHONY_COMMANDS,
     normalize_packages,
 )
@@ -32,13 +35,16 @@ class CaptureOutcome:
 
 @dataclass(frozen=True)
 class CaptureOptions:
-    """Optional Phase 2 collectors selected for one capture."""
+    """Optional Phase 2 and Phase 3 collectors selected for one capture."""
 
     skip_display: bool = False
     skip_telephony: bool = False
     skip_packages: bool = False
     skip_magisk: bool = False
     skip_runtime_markers: bool = False
+    skip_camera: bool = False
+    skip_sensors: bool = False
+    skip_hal: bool = False
     packages: tuple[str, ...] = ()
 
 
@@ -83,6 +89,9 @@ def capture_evidence(
             "runtime_markers",
             options.skip_runtime_markers,
         ),
+        "camera": _collector_state(commands, "camera", options.skip_camera),
+        "sensors": _collector_state(commands, "sensors", options.skip_sensors),
+        "hal": _collector_state(commands, "hal", options.skip_hal),
     }
     bundle_path = write_evidence_bundle(
         output_dir=output_dir,
@@ -90,6 +99,7 @@ def capture_evidence(
         commands=commands,
         additional_sensitive_values=(device.serial for device in devices),
         collector_states=collector_states,
+        schema_version="3.0",
     )
     collector_errors = sum(
         (command.status_override or command_status(command.result)) != "observed" for command in commands
@@ -106,6 +116,9 @@ def _collection_request(options: CaptureOptions, timeout_seconds: int) -> Collec
             ("packages", options.skip_packages),
             ("magisk", options.skip_magisk),
             ("runtime_markers", options.skip_runtime_markers),
+            ("camera", options.skip_camera),
+            ("sensors", options.skip_sensors),
+            ("hal", options.skip_hal),
         )
         if skipped
     )
@@ -129,7 +142,7 @@ def _collector_state(commands: list[EvidenceCommand], section: str, skipped: boo
         return "unavailable"
     if any(status == "observed" for status in statuses):
         return "observed"
-    for status in ("timeout", "permission_denied", "unavailable"):
+    for status in ("timeout", "permission_denied", "unsupported", "unavailable"):
         if status in statuses:
             return status
     return statuses[0]
@@ -142,10 +155,13 @@ __all__ = [
     "DEFAULT_COLLECTOR_REGISTRY",
     "DEFAULT_PACKAGES",
     "DISPLAY_COMMANDS",
+    "CAMERA_COMMANDS",
+    "HAL_COMMANDS",
     "MAGISK_COMMANDS",
     "PHASE_ONE_COMMANDS",
     "ROOT_RUNTIME_COMMANDS",
     "RUNTIME_COMMANDS",
+    "SENSOR_COMMANDS",
     "TELEPHONY_COMMANDS",
     "capture_evidence",
     "normalize_packages",

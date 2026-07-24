@@ -19,21 +19,24 @@ from device_audit.collector_api import (
 )
 from device_audit.collectors import (
     BUILTIN_COLLECTORS,
+    CAMERA_COMMANDS,
     DEFAULT_PACKAGES,
     DISPLAY_COMMANDS,
+    HAL_COMMANDS,
     MAGISK_COMMANDS,
     PHASE_ONE_COMMANDS,
     ROOT_RUNTIME_COMMANDS,
     RUNTIME_COMMANDS,
+    SENSOR_COMMANDS,
     TELEPHONY_COMMANDS,
 )
 from device_audit.models import CommandResult, EvidenceCommand
 
 
-def test_release_metadata_declares_v090_console_entrypoint() -> None:
+def test_release_metadata_declares_v0100rc1_console_entrypoint() -> None:
     pyproject = tomllib.loads((Path(__file__).parents[1] / "pyproject.toml").read_text(encoding="utf-8"))
 
-    assert __version__ == "0.9.0"
+    assert __version__ == "0.10.0rc1"
     assert pyproject["project"]["version"] == __version__
     assert pyproject["project"]["scripts"] == {"device-audit": "device_audit.cli:main"}
 
@@ -43,7 +46,7 @@ def test_top_level_version_does_not_normalize_to_audit(capsys) -> None:
         main(["--version"])
 
     assert exit_info.value.code == 0
-    assert capsys.readouterr().out.endswith(" 0.9.0\n")
+    assert capsys.readouterr().out.endswith(" 0.10.0rc1\n")
 
 
 def test_collector_api_registry_preserves_order_and_shared_state() -> None:
@@ -98,6 +101,9 @@ def test_builtin_collectors_are_uniquely_named_and_cover_current_sections() -> N
         "root_probe",
         "magisk",
         "runtime_markers",
+        "camera",
+        "sensors",
+        "hal",
     ]
     assert sections == {
         "transport",
@@ -109,6 +115,9 @@ def test_builtin_collectors_are_uniquely_named_and_cover_current_sections() -> N
         "packages",
         "magisk",
         "runtime_markers",
+        "camera",
+        "sensors",
+        "hal",
     }
 
 
@@ -125,6 +134,9 @@ def test_frozen_builtin_command_specs_and_default_packages_are_exact() -> None:
         *MAGISK_COMMANDS,
         *RUNTIME_COMMANDS,
         *ROOT_RUNTIME_COMMANDS,
+        *CAMERA_COMMANDS,
+        *SENSOR_COMMANDS,
+        *HAL_COMMANDS,
     )
 
     assert [(spec.id, spec.section, spec.arguments, spec.timeout_seconds) for spec in specs] == [
@@ -180,6 +192,13 @@ def test_frozen_builtin_command_specs_and_default_packages_are_exact() -> None:
             ("su", "-c", "ls -la /data/adb/magisk 2>/dev/null"),
             10,
         ),
+        ("camera.media_camera", "camera", ("dumpsys", "media.camera"), 20),
+        ("camera.cmd_list", "camera", ("cmd", "media.camera", "list"), 20),
+        ("camera.cmd_dump", "camera", ("cmd", "media.camera", "dump"), 30),
+        ("sensors.sensorservice", "sensors", ("dumpsys", "sensorservice"), 20),
+        ("hal.lshal", "hal", ("lshal",), 30),
+        ("hal.lshal_interfaces", "hal", ("lshal", "-i"), 30),
+        ("hal.dumpsys_services", "hal", ("dumpsys", "-l"), 20),
     ]
     assert DEFAULT_PACKAGES == (
         "android",
@@ -218,6 +237,9 @@ def test_frozen_cli_commands_and_flags_are_exact() -> None:
         "--skip-packages",
         "--skip-magisk",
         "--skip-runtime-markers",
+        "--skip-camera",
+        "--skip-sensors",
+        "--skip-hal",
         "--package",
         "--profile",
     }
@@ -233,6 +255,9 @@ def test_frozen_cli_commands_and_flags_are_exact() -> None:
         "--skip-packages",
         "--skip-magisk",
         "--skip-runtime-markers",
+        "--skip-camera",
+        "--skip-sensors",
+        "--skip-hal",
         "--package",
     }
     assert _option_strings(subparsers.choices["analyze"]) == {

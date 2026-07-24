@@ -1,0 +1,2 @@
+android.hardware.sensors.ISensors/default
+malformed service entry |||

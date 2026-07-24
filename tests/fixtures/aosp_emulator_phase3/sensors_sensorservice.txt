@@ -1,0 +1,5 @@
+Sensorservice status: ACTIVE
+Handle: 1 | Name: Emulator Accelerometer | Vendor: AOSP Synthetic | Version: 1 | Type: 1 | StringType: android.sensor.accelerometer | Reporting mode: continuous | Wake-up: false | Dynamic: false | MaxRange: 20 | Resolution: 0.01 | Power: 0 | MinDelay: 10000 | MaxDelay: 1000000 | FifoReserved: 0 | FifoMax: 0
+Handle: 2 | Name: Emulator Magnetic Field | Vendor: AOSP Synthetic | Version: 1 | Type: 2 | StringType: android.sensor.magnetic_field | Reporting mode: continuous | Wake-up: false | Dynamic: false | MaxRange: 2000 | Resolution: 0.1 | Power: 0 | MinDelay: 10000 | MaxDelay: 1000000 | FifoReserved: 0 | FifoMax: 0
+Active sensors: 0
+Active connections: 0

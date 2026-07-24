@@ -1,0 +1,7 @@
+Sensorservice status: ACTIVE
+Handle: 1 | Name: Synthetic Accelerometer | Vendor: Google Synthetic | Version: 1 | Type: 1 | StringType: android.sensor.accelerometer | Reporting mode: continuous | Wake-up: false | Dynamic: false | MaxRange: 39.2 | Resolution: 0.001 | Power: 0.12 | MinDelay: 2500 | MaxDelay: 1000000 | FifoReserved: 0 | FifoMax: 4096
+Handle: 2 | Name: Synthetic Gyroscope | Vendor: Bosch Synthetic | Version: 2 | Type: 4 | StringType: android.sensor.gyroscope | Reporting mode: continuous | Wake-up: true | Dynamic: false | MaxRange: 34.9 | Resolution: 0.0001 | Power: 0.15 | MinDelay: 2500 | MaxDelay: 1000000 | FifoReserved: 16 | FifoMax: 4096
+Handle: 3 | Name: Synthetic Light | Vendor: Google Synthetic | Version: 1 | Type: 5 | StringType: android.sensor.light | Reporting mode: on-change | Wake-up: false | Dynamic: false | MaxRange: 10000 | Resolution: 1 | Power: 0.05 | MinDelay: 0 | MaxDelay: 0 | FifoReserved: 0 | FifoMax: 0
+Handle: 4 | Name: Synthetic Proximity | Vendor: Google Synthetic | Version: 1 | Type: 8 | StringType: android.sensor.proximity | Reporting mode: on-change | Wake-up: true | Dynamic: false | MaxRange: 5 | Resolution: 1 | Power: 0.04 | MinDelay: 0 | MaxDelay: 0 | FifoReserved: 0 | FifoMax: 0
+Active sensors: 2
+Active connections: 1

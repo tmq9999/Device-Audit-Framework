@@ -1,0 +1,222 @@
+{
+  "audit_log_sha256": "f851781e0a7e513f8f5f7205b3d6d20700b8655fbb90170f08fb92683d84661b",
+  "bundle_digest": "becfa30b27ab582907b69b75e40b6c535bafde43749f61878dd80a5d8983e9e8",
+  "bundle_type": "device-audit-evidence",
+  "collector_states": {
+    "camera": "observed",
+    "display": "not_evaluated",
+    "hal": "observed",
+    "magisk": "not_evaluated",
+    "packages": "not_evaluated",
+    "runtime_markers": "observed",
+    "sensors": "observed",
+    "telephony": "not_evaluated"
+  },
+  "commands": [
+    {
+      "command": [
+        "adb",
+        "-s",
+        "<redacted-serial>",
+        "shell",
+        "getprop"
+      ],
+      "duration_ms": 1,
+      "exit_code": 0,
+      "id": "properties.getprop",
+      "section": "properties",
+      "status": "observed",
+      "stderr_length": 0,
+      "stderr_path": "raw/properties_getprop.stderr.txt",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_length": 69,
+      "stdout_path": "raw/properties_getprop.stdout.txt",
+      "stdout_sha256": "40b494fcdd68bbe7ee948ac17a8c8941e52c8dd7cf404817cec64718a05b0671",
+      "timed_out": false
+    },
+    {
+      "command": [
+        "adb",
+        "-s",
+        "<redacted-serial>",
+        "shell",
+        "service",
+        "list"
+      ],
+      "duration_ms": 1,
+      "exit_code": 0,
+      "id": "runtime.services",
+      "section": "runtime_markers",
+      "status": "observed",
+      "stderr_length": 0,
+      "stderr_path": "raw/runtime_services.stderr.txt",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_length": 80,
+      "stdout_path": "raw/runtime_services.stdout.txt",
+      "stdout_sha256": "ed5b5e62848a3eafbea3c0ede0a219f60a0c53495dfc72827d8cae2234b9a57c",
+      "timed_out": false
+    },
+    {
+      "command": [
+        "adb",
+        "-s",
+        "<redacted-serial>",
+        "shell",
+        "dumpsys",
+        "media.camera"
+      ],
+      "duration_ms": 1,
+      "exit_code": 0,
+      "id": "camera.media_camera",
+      "section": "camera",
+      "status": "observed",
+      "stderr_length": 0,
+      "stderr_path": "raw/camera_media_camera.stderr.txt",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_length": 758,
+      "stdout_path": "raw/camera_media_camera.stdout.txt",
+      "stdout_sha256": "01c723c966a49fad5e0437f07c147397c26cb81704dc0e7d0b66c1b639db3372",
+      "timed_out": false
+    },
+    {
+      "command": [
+        "adb",
+        "-s",
+        "<redacted-serial>",
+        "shell",
+        "cmd",
+        "media.camera",
+        "list"
+      ],
+      "duration_ms": 1,
+      "exit_code": 0,
+      "id": "camera.cmd_list",
+      "section": "camera",
+      "status": "observed",
+      "stderr_length": 0,
+      "stderr_path": "raw/camera_cmd_list.stderr.txt",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_length": 26,
+      "stdout_path": "raw/camera_cmd_list.stdout.txt",
+      "stdout_sha256": "3674dbb82ca64e60ad3a4ff9bb9cab8ca343f1b1f51567aaee2beff2aaa76352",
+      "timed_out": false
+    },
+    {
+      "command": [
+        "adb",
+        "-s",
+        "<redacted-serial>",
+        "shell",
+        "cmd",
+        "media.camera",
+        "dump"
+      ],
+      "duration_ms": 1,
+      "exit_code": 0,
+      "id": "camera.cmd_dump",
+      "section": "camera",
+      "status": "observed",
+      "stderr_length": 0,
+      "stderr_path": "raw/camera_cmd_dump.stderr.txt",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_length": 262,
+      "stdout_path": "raw/camera_cmd_dump.stdout.txt",
+      "stdout_sha256": "2780e44292c9f81ade7012944b22322ecae91e11ef86f7d77750815a2dcc1537",
+      "timed_out": false
+    },
+    {
+      "command": [
+        "adb",
+        "-s",
+        "<redacted-serial>",
+        "shell",
+        "dumpsys",
+        "sensorservice"
+      ],
+      "duration_ms": 1,
+      "exit_code": 0,
+      "id": "sensors.sensorservice",
+      "section": "sensors",
+      "status": "observed",
+      "stderr_length": 0,
+      "stderr_path": "raw/sensors_sensorservice.stderr.txt",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_length": 1280,
+      "stdout_path": "raw/sensors_sensorservice.stdout.txt",
+      "stdout_sha256": "99ee4a7e3ed4512df7cc25f1e82b61e1049c9415997ff02c602c5bb1500d0d4f",
+      "timed_out": false
+    },
+    {
+      "command": [
+        "adb",
+        "-s",
+        "<redacted-serial>",
+        "shell",
+        "lshal"
+      ],
+      "duration_ms": 1,
+      "exit_code": 0,
+      "id": "hal.lshal",
+      "section": "hal",
+      "status": "observed",
+      "stderr_length": 0,
+      "stderr_path": "raw/hal_lshal.stderr.txt",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_length": 315,
+      "stdout_path": "raw/hal_lshal.stdout.txt",
+      "stdout_sha256": "52b08529037a692122b6872c9ce49db556e27c1d9cfbe395950d5f607da48c8e",
+      "timed_out": false
+    },
+    {
+      "command": [
+        "adb",
+        "-s",
+        "<redacted-serial>",
+        "shell",
+        "lshal",
+        "-i"
+      ],
+      "duration_ms": 1,
+      "exit_code": 0,
+      "id": "hal.lshal_interfaces",
+      "section": "hal",
+      "status": "observed",
+      "stderr_length": 0,
+      "stderr_path": "raw/hal_lshal_interfaces.stderr.txt",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_length": 160,
+      "stdout_path": "raw/hal_lshal_interfaces.stdout.txt",
+      "stdout_sha256": "b3c2660012ad2a8960241973f0347c163633e29c0b174cadd38a535edfd6a17a",
+      "timed_out": false
+    },
+    {
+      "command": [
+        "adb",
+        "-s",
+        "<redacted-serial>",
+        "shell",
+        "dumpsys",
+        "-l"
+      ],
+      "duration_ms": 1,
+      "exit_code": 0,
+      "id": "hal.dumpsys_services",
+      "section": "hal",
+      "status": "observed",
+      "stderr_length": 0,
+      "stderr_path": "raw/hal_dumpsys_services.stderr.txt",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_length": 173,
+      "stdout_path": "raw/hal_dumpsys_services.stdout.txt",
+      "stdout_sha256": "7cbf013a80c878cac6fa43e04dd97f8538c869da2ef7d8c433a19552fa8cb69c",
+      "timed_out": false
+    }
+  ],
+  "commands_jsonl_sha256": "c3bfee7aaefc372bd6a0d8759a693ddb672c8b40abeac850bb450cc31594c3c3",
+  "generated_at": "2026-07-24T14:09:28+00:00",
+  "schema_version": "3.0",
+  "target": {
+    "serial": "<redacted-serial>"
+  },
+  "tool_version": "0.9.0"
+}

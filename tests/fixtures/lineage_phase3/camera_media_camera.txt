@@ -1,0 +1,24 @@
+Camera service status: ACTIVE
+Number of camera devices: 2
+Provider: synthetic.lineage.cámara
+Camera ID: 0
+Facing: BACK
+Orientation: 90
+Hardware level: FULL
+Flash available: true
+Capabilities: BACKWARD_COMPATIBLE, RAW, LOGICAL_MULTI_CAMERA
+Physical camera IDs: 2, 3
+Output formats: JPEG, YUV_420_888, RAW_SENSOR
+Output sizes: 4032x3024, 1920x1080
+FPS ranges: [15, 30]
+Camera ID: 1
+Facing: FRONT
+Orientation: 270
+Hardware level: FULL
+Flash available: false
+Capabilities: BACKWARD_COMPATIBLE
+Output formats: JPEG, YUV_420_888
+Output sizes: 1920x1080
+FPS ranges: [15, 30]
+Concurrent camera combinations: {0, 1}
+Active Camera Clients: 0

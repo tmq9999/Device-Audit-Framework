@@ -1,0 +1,5 @@
+android.hardware.camera.provider.ICameraProvider/default
+android.hardware.sensors.ISensors/default
+vendor.synthetic.hardware.feature.IFeature/default
+media.camera
+sensorservice

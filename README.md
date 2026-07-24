@@ -1,12 +1,12 @@
 # Device Audit Framework
 
-A read-only Android research CLI that captures redacted ADB evidence, replays it offline, and evaluates only explicitly selected profile expectations. Phase 2 adds display, telephony, package metadata, Google Play services summary, root-gated Magisk inventory, and environment-specific runtime markers.
+A read-only Android research CLI that captures redacted ADB evidence, replays it offline, and evaluates only explicitly selected profile expectations. Phase 3 adds bounded camera, sensor, HAL, and native-service inventory; it does not infer commercial-device identity or analyze attestation services.
 
 The framework inventories observable evidence. It does not modify the Android device, predict external-service outcomes, or turn an unreferenced difference into a mismatch.
 
 ## Source Distribution
 
-The v0.9.0 research release is intended for GitHub source distribution. A
+The v0.10.0-rc.1 research release candidate is intended for GitHub source distribution. A
 source checkout includes the backward-compatible `device_audit.py` launcher,
 the installable `device_audit` package, documented sample profiles, release
 documentation, and golden fixtures. Build an sdist or wheel locally with
@@ -101,12 +101,16 @@ The explicit equivalent is `python device_audit.py audit ...`.
 --skip-packages
 --skip-magisk
 --skip-runtime-markers
+--skip-camera
+--skip-sensors
+--skip-hal
 --package PACKAGE
 ```
 
 `--package` is repeatable, validates restrictive Android package names, appends to the default package set, and deduplicates deterministically. Defaults are `android`, `com.google.android.gms`, `com.android.vending`, `com.google.android.apps.subscriptions.red`, `com.google.android.googlequicksearchbox`, and `com.google.android.apps.bard`.
 
-For example, collect all Phase 2 sections except root-gated Magisk inventory while adding one package:
+For example, collect all enabled inventory sections except root-gated Magisk
+inventory while adding one package:
 
 ```powershell
 python device_audit.py collect `
@@ -161,10 +165,18 @@ run_001/
     ├── packages_com_google_android_gms_dumpsys.stdout.txt
     ├── magisk_version.stdout.txt
     ├── runtime_processes.stdout.txt
+    ├── camera_media_camera.stdout.txt
+    ├── sensors_sensorservice.stdout.txt
+    ├── hal_lshal.stdout.txt
     └── ...
 ```
 
-Evidence bundle schema `2.0` adds collector-state metadata while retaining the Phase 1 command/artifact format. The offline reader continues to accept verified schema `1.0` bundles. `evidence.json` records the bundle schema, redacted command metadata, artifact paths, SHA-256 digests, and an overall bundle digest. Analysis rejects missing, modified, malformed, or path-escaping artifacts.
+Evidence bundle schema `3.0` adds camera, sensor, and HAL collector-state
+metadata while retaining the Phase 1/2 command and artifact format. The
+offline reader continues to accept verified schema `1.0` and `2.0` bundles.
+`evidence.json` records the bundle schema, redacted command metadata,
+artifact paths, SHA-256 digests, and an overall bundle digest. Analysis rejects
+missing, modified, malformed, undeclared, or path-escaping artifacts.
 
 All persisted text is canonical UTF-8 with LF newlines before hashing. `report.json` records analyzer version, bundle schema/digest, selected profile digest, section states, command provenance, permission limits, timeouts, parse errors, comparisons, findings, and summary counts. `report.md` contains compact parsed observations only; it never embeds full raw dumps.
 
@@ -198,6 +210,36 @@ Profiles are local, version-controlled reference data. A missing expectation mea
 ```
 
 Existing identity/build, `kernel.allowed_lineages`, and `native_cpu.allowed_topologies` profile fields remain supported. The bundled Pixel 10 Pro sample intentionally contains identity/build reference data only. Magisk and runtime markers remain inventory-only in Phase 2.
+
+Phase 3 adds optional `camera`, `sensors`, and `hal` references. For example:
+
+```json
+{
+  "camera": {
+    "minimum_camera_count": 2,
+    "required_facing": ["front", "back"],
+    "required_camera_ids": ["0", "1"],
+    "allowed_hardware_levels": ["FULL", "LEVEL_3"],
+    "required_capabilities": ["BACKWARD_COMPATIBLE"]
+  },
+  "sensors": {
+    "minimum_sensor_count": 3,
+    "required_types": ["android.sensor.accelerometer"],
+    "allowed_vendors": ["Synthetic Sensors"]
+  },
+  "hal": {
+    "required_interfaces": ["android.hardware.camera.provider"],
+    "required_families": ["android.hardware.camera"],
+    "allowed_transports": ["hwbinder", "binder", "passthrough"]
+  }
+}
+```
+
+Every Phase 3 field is optional. Omitted fields remain inventory only;
+unsupported commands, unavailable services, permission limits, timeouts, and
+incomplete parsing cannot create a mismatch finding. HAL names such as DRM or
+KeyMint may be inventoried when exposed by the device, but this tool does not
+analyze DRM, key attestation, Play Integrity, or other remote services.
 
 No aggregate consistency, stealth, bypass, integrity, eligibility, or detection score is calculated. The tool does not predict Play Integrity, Google One, or any other external-service behavior.
 
@@ -251,6 +293,13 @@ adb -s SERIAL shell ls -la /debug_ramdisk
 adb -s SERIAL shell su -c "ls -la /data/adb 2>/dev/null"
 adb -s SERIAL shell su -c "ls -la /data/adb/modules 2>/dev/null"
 adb -s SERIAL shell su -c "ls -la /data/adb/magisk 2>/dev/null"
+adb -s SERIAL shell dumpsys media.camera
+adb -s SERIAL shell cmd media.camera list
+adb -s SERIAL shell cmd media.camera dump
+adb -s SERIAL shell dumpsys sensorservice
+adb -s SERIAL shell lshal
+adb -s SERIAL shell lshal -i
+adb -s SERIAL shell dumpsys -l
 ```
 
 Root-gated commands execute only after `command -v su` and `su -c id` successfully establish UID 0. They are bounded read-only inventory commands; the tool does not recurse through `/data/adb` or read module files.
