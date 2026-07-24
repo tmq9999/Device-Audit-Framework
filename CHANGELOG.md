@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.12.0 RC 1 — tag `v0.12.0-rc.1`
 
 - Add read-only `network`, `graphics`, `input`, and `memory` collectors
   through the stable Collector API.

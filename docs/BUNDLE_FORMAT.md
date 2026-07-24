@@ -72,7 +72,7 @@ bundle invalid. Re-run capture rather than repairing a bundle by hand.
 
 Redaction is applied to raw text, stderr, command arguments, logs, manifest
 metadata, reports, and output directory names before persistence. Full serials
-are never persisted, and v0.11.0-rc.1 has no unredacted export mode. Phase 4
+are never persisted, and v0.12.0-rc.1 has no unredacted export mode. Phase 4
 also contextually redacts UUIDs, volume/disk IDs, audio sessions, client or
 process identifiers, package-private paths, MAC/IP addresses, and tokens.
 Phase 5 additionally redacts SSIDs/BSSIDs, labeled network identifiers,
