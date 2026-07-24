@@ -33,10 +33,10 @@ from device_audit.collectors import (
 from device_audit.models import CommandResult, EvidenceCommand
 
 
-def test_release_metadata_declares_v090_console_entrypoint() -> None:
+def test_release_metadata_declares_v0100rc1_console_entrypoint() -> None:
     pyproject = tomllib.loads((Path(__file__).parents[1] / "pyproject.toml").read_text(encoding="utf-8"))
 
-    assert __version__ == "0.9.0"
+    assert __version__ == "0.10.0rc1"
     assert pyproject["project"]["version"] == __version__
     assert pyproject["project"]["scripts"] == {"device-audit": "device_audit.cli:main"}
 
@@ -46,7 +46,7 @@ def test_top_level_version_does_not_normalize_to_audit(capsys) -> None:
         main(["--version"])
 
     assert exit_info.value.code == 0
-    assert capsys.readouterr().out.endswith(" 0.9.0\n")
+    assert capsys.readouterr().out.endswith(" 0.10.0rc1\n")
 
 
 def test_collector_api_registry_preserves_order_and_shared_state() -> None:

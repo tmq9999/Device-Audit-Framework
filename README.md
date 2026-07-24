@@ -6,7 +6,7 @@ The framework inventories observable evidence. It does not modify the Android de
 
 ## Source Distribution
 
-The v0.9.0 research release is intended for GitHub source distribution. A
+The v0.10.0-rc.1 research release candidate is intended for GitHub source distribution. A
 source checkout includes the backward-compatible `device_audit.py` launcher,
 the installable `device_audit` package, documented sample profiles, release
 documentation, and golden fixtures. Build an sdist or wheel locally with

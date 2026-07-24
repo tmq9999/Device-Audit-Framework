@@ -47,7 +47,7 @@ the serial-bound ADB client. A collector can share bounded state with later
 collectors, such as the read-only root probe result. The registry preserves
 declaration order and rejects duplicate collector IDs and command IDs.
 
-No automatic third-party plugin discovery is enabled in v0.9.0. External
+No automatic third-party plugin discovery is enabled in v0.10.0-rc.1. External
 collectors must be explicitly reviewed and injected through the registry.
 This keeps the command whitelist auditable and reproducible.
 

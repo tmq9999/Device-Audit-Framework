@@ -68,4 +68,4 @@ bundle invalid. Re-run capture rather than repairing a bundle by hand.
 
 Redaction is applied to raw text, stderr, command arguments, logs, manifest
 metadata, reports, and output directory names before persistence. Full serials
-are never persisted, and v0.9.0 has no unredacted export mode.
+are never persisted, and v0.10.0-rc.1 has no unredacted export mode.

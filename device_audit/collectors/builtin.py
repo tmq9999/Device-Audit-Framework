@@ -1,4 +1,4 @@
-"""The frozen Phase 1/2 collector set for v0.9.0."""
+"""The frozen Phase 1/2 set plus Phase 3 hardware inventory for v0.10.0rc1."""
 
 from __future__ import annotations
 
