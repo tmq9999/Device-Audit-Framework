@@ -1,0 +1,4 @@
+Package [broken
+versionCode=not-a-number targetSdk=?
+Intent Resolver Table:
+  100000 irrelevant entries omitted

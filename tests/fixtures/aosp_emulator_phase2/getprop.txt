@@ -1,0 +1,6 @@
+[gsm.sim.state]: [ABSENT]
+[gsm.network.type]: [UNKNOWN]
+[gsm.operator.alpha]: []
+[gsm.operator.numeric]: []
+[gsm.operator.iso-country]: []
+[gsm.version.baseband]: []

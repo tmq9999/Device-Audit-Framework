@@ -1,0 +1,7 @@
+Package [com.google.android.gms] (a1):
+  versionCode=260100000 minSdk=23 targetSdk=36
+  versionName=26.01.00
+  installerPackageName=com.android.vending
+  flags=[ SYSTEM HAS_CODE ] privateFlags=[ PRIVILEGED ]
+  enabled=true stopped=false suspended=false
+  SHA-256 digest=00112233445566778899AABBCCDDEEFF

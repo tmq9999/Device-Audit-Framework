@@ -1,0 +1,2 @@
+package:/product/priv-app/PrebuiltGmsCore/PrebuiltGmsCore.apk
+package:/product/priv-app/PrebuiltGmsCore/split_config.arm64_v8a.apk

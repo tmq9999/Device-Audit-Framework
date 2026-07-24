@@ -1,0 +1,24 @@
+{
+  "schema_version": "1.0",
+  "name": "Pixel 10 Pro CP1A identity/build sample",
+  "reference": {
+    "kind": "user-supplied-sample",
+    "notes": "This sample intentionally omits kernel and native CPU references."
+  },
+  "identity": {
+    "brand": "google",
+    "manufacturer": "Google",
+    "model": "Pixel 10 Pro",
+    "device": "blazer",
+    "product": "blazer"
+  },
+  "build": {
+    "id": "CP1A.260505.005",
+    "incremental": "15081906",
+    "release": "16",
+    "sdk": 36,
+    "security_patch": "2026-05-05",
+    "fingerprint": "google/blazer/blazer:16/CP1A.260505.005/15081906:user/release-keys",
+    "description": "generic_system_google-user 16 CP1A.260505.005 15081906 release-keys"
+  }
+}

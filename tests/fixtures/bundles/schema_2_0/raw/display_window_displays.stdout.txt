@@ -1,0 +1,1 @@
+mDisplayId=0 logicalWidth=1344 logicalHeight=2992

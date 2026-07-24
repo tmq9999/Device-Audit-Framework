@@ -1,0 +1,5 @@
+processor : 0
+vendor_id : GenuineIntel
+model name : Virtual CPU
+CPU implementer : 0x99
+CPU part : 0xabc

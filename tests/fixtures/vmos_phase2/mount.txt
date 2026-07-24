@@ -1,0 +1,2 @@
+/dev/block/loop0 on /system type ext4 (ro,seclabel)
+tmpfs on /debug_ramdisk type tmpfs (rw,seclabel)

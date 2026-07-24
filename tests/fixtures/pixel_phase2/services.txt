@@ -1,0 +1,2 @@
+0 activity: [android.app.IActivityManager]
+1 package: [android.content.pm.IPackageManager]

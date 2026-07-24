@@ -1,0 +1,1 @@
+DisplayDeviceInfo{"Built-in Screen", 1080 x 1920, modeId 1, supportedModes [{id=1, width=1080, height=1920, fps=60.0}], wideColorGamut=false}

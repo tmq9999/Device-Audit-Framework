@@ -1,0 +1,4 @@
+2026-07-24T12:06:05+00:00 command=properties.getprop status=observed exit_code=0 duration_ms=1 stdout_length=64 stderr_length=0 timeout=False
+2026-07-24T12:06:05+00:00 command=kernel.uname status=observed exit_code=0 duration_ms=1 stdout_length=53 stderr_length=0 timeout=False
+2026-07-24T12:06:05+00:00 command=cpu.cpuinfo status=observed exit_code=0 duration_ms=1 stdout_length=54 stderr_length=0 timeout=False
+2026-07-24T12:06:05+00:00 command=cpu.online_count status=observed exit_code=0 duration_ms=1 stdout_length=2 stderr_length=0 timeout=False

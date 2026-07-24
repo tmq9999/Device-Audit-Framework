@@ -1,0 +1,2 @@
+mNumPhones=1
+mDataNetworkType=NR_SA mVoiceNetworkType=LTE mOperatorAlphaLong=Verizon mOperatorNumeric=310012 mIsRoaming=false

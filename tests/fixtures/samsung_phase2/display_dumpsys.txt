@@ -1,0 +1,1 @@
+DisplayDeviceInfo{"Built-in Screen", 1440 x 3120, activeModeId=3, supportedModes=[Display.Mode{id=1, width=1440, height=3120, refreshRate=60.0}, Display.Mode{id=3, width=1440, height=3120, refreshRate=120.0}], hdrTypes=[HDR10_PLUS], isWideColorGamut=true}

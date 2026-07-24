@@ -1,0 +1,2 @@
+0 vmos.fileservice: [com.vmos.FileService]
+1 screen_snap: [com.vmos.ScreenSnap]

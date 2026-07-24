@@ -1,0 +1,4 @@
+[gsm.operator.numeric]: [310012]
+malformed property
+[gsm.operator.numeric]: [999999]
+[unicode.label]: [Thiết bị thử nghiệm ✅]

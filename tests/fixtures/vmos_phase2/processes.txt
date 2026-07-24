@@ -1,0 +1,5 @@
+USER PID PPID VSZ RSS WCHAN ADDR S NAME
+root 123 1 0 0 0 0 S madbd
+root 124 1 0 0 0 0 S process_daemon
+root 125 1 0 0 0 0 S deviceservice
+root 126 1 0 0 0 0 S xu_daemon

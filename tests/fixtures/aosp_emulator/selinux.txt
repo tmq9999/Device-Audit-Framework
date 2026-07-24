@@ -1,0 +1,2 @@
+Enforcing
+uid=2000(shell) gid=2000(shell) groups=2000(shell) context=u:r:shell:s0

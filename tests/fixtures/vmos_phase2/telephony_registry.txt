@@ -1,0 +1,4 @@
+mNumPhones=2
+Phone Id=0 mDataNetworkType=NR_SA mVoiceNetworkType=LTE mOperatorAlphaLong=Verizon mOperatorNumeric=310012 mIsRoaming=false
+Phone Id=1 mDataNetworkType=LTE mOperatorAlphaLong=Verizon mOperatorNumeric=310012 mIsRoaming=false
+mImei=TEST-IMEI-0001 mSubscriberId=TEST-SUBSCRIBER-0001 line1Number=TEST-PHONE-0001

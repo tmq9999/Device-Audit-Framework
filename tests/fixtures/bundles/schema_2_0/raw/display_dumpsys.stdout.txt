@@ -1,0 +1,1 @@
+mBaseDisplayInfo=DisplayInfo{"Built-in Screen", displayId 0, real 1344 x 2992, modeId 2, supportedModes [{id=1, width=1344, height=2992, fps=60.0}, {id=2, width=1344, height=2992, fps=120.0}], hdrCapabilities=HdrCapabilities{mSupportedHdrTypes=[1, 2, 3]}, wideColorGamut=true}

@@ -1,0 +1,5 @@
+[good.key]: [first]
+not a property line
+[good.key]: [second]
+[unicode.key]: [測試 ✅]
+[unterminated.key]: [value

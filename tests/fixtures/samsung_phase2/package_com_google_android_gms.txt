@@ -1,0 +1,3 @@
+Package [com.google.android.gms] (b2):
+  versionCode=259999999 targetSdk=35 versionName=25.99.99
+  enabled=1 stopped=false suspended=true

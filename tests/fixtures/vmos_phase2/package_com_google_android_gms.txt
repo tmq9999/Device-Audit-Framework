@@ -1,0 +1,9 @@
+Package [com.google.android.gms] (def):
+  codePath=/product/priv-app/PrebuiltGmsCore
+  versionCode=260100000 minSdk=23 targetSdk=36
+  versionName=26.01.00
+  installerPackageName=com.android.vending
+  flags=[ SYSTEM HAS_CODE ]
+  privateFlags=[ PRIVILEGED ]
+  enabled=1 stopped=false suspended=false
+  SigningInfo: SHA-256 digest: AA:BB:CC:DD:EE:FF:00:11:22:33:44:55:66:77:88:99

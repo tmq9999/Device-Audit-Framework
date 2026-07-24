@@ -1,0 +1,4 @@
+processor : 0
+CPU implementer : 0x41
+CPU part :
+truncated record

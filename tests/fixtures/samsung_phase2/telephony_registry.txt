@@ -1,0 +1,2 @@
+Phone Count: 2
+phoneId=0 dataNetworkType=LTE operatorAlphaLong=Verizon operatorNumeric=310012 roaming=false

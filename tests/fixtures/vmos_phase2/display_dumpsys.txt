@@ -1,0 +1,1 @@
+DisplayDeviceInfo{"Built-in Screen", displayId 0, 1080 x 2400, modeId 2, supportedModes [{id=1, width=1080, height=2400, fps=60.0}, {id=2, width=1080, height=2400, fps=120.0}], hdrCapabilities=HdrCapabilities{mSupportedHdrTypes=[HDR10, HLG]}, wideColorGamut=true}

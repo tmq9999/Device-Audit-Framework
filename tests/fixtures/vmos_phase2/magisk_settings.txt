@@ -1,0 +1,2 @@
+zygisk|1
+denylist|0

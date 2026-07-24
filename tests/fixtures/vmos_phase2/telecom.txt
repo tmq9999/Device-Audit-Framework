@@ -1,0 +1,1 @@
+mPhoneAccountHandles=[PhoneAccountHandle{component=com.android.phone/.PhoneAccount, id=SIM1}, PhoneAccountHandle{component=com.android.phone/.PhoneAccount, id=SIM2}]

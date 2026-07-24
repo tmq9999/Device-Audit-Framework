@@ -1,0 +1,2 @@
+[ro.product.model]: [Fixture Device]
+[ro.build.id]: [FIXTURE.1]

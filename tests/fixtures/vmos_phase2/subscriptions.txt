@@ -1,0 +1,1 @@
+ActiveSubInfoList=[SubscriptionInfo{id=1, iccId=TEST-ICCID-0001}, SubscriptionInfo{id=2, iccId=TEST-ICCID-0002}]
