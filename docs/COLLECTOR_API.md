@@ -1,6 +1,6 @@
 # Collector API
 
-The stable collector API version in v0.10.0-rc.1 is `1.0`.
+The stable collector API version in v0.11.0-rc.1 is `1.0`.
 
 ## Contract
 

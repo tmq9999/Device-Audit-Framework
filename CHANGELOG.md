@@ -1,9 +1,9 @@
 # Changelog
 
-## Unreleased — Phase 4
+## 0.11.0 RC 1 — tag `v0.11.0-rc.1`
 
 - Add read-only `audio`, `battery`, `thermal`, and `storage` collectors through
-  the stable Collector API without changing the package version.
+  the stable Collector API.
 - Introduce additive evidence bundle schema `4.0` while preserving offline
   replay and digest verification for schemas `1.0`, `2.0`, and `3.0`.
 - Add bounded audio route/service metadata, battery and charging state,
@@ -13,6 +13,10 @@
   section; omitted or incomplete evidence remains inventory-only.
 - Add eight synthetic Phase 4 fixture families and a committed schema `4.0`
   replay bundle, increasing the locked corpus to 440 files.
+- Validate explicit `--serial` targets directly without running global
+  `adb devices -l` discovery.
+- Lock the golden fixture corpus to committed bytes via `.gitattributes` so
+  the corpus digest matches on every checkout platform.
 - Preserve read-only collection: no playback, recording, power mutation,
   thermal stress, storage writes, benchmarks, or second full `getprop`.
 

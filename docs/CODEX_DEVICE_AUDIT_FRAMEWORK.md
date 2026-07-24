@@ -5,9 +5,9 @@ described exploratory work that predates the v0.9.0 release candidate. It is
 retained only to preserve the documented filename for existing checkouts and
 links; it is not a current product specification.
 
-## Current v0.10.0-rc.1 Scope
+## Current v0.11.0-rc.1 Scope
 
-Device Audit Framework v0.10.0-rc.1 is a read-only, profile-driven research CLI. It
+Device Audit Framework v0.11.0-rc.1 is a read-only, profile-driven research CLI. It
 contains the frozen Phase 1/2 collectors, focused Phase 3 hardware inventory,
 and focused Phase 4 system inventory collectors:
 
