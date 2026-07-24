@@ -1,0 +1,3 @@
+/dev/block/dm-0 on /data type ext4 (rw,seclabel,relatime)
+/dev/block/dm-1 on /system type ext4 (ro,seclabel,relatime)
+tmpfs on /storage/emulated/0 type tmpfs (rw,nosuid,nodev)

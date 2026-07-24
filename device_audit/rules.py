@@ -1,4 +1,4 @@
-"""Profile-driven evidence rules for observable Phase 1 and Phase 2 data."""
+"""Profile-driven rules for observable read-only device inventory."""
 
 from __future__ import annotations
 
@@ -7,6 +7,8 @@ from collections.abc import Mapping
 import re
 
 from device_audit.models import (
+    AudioInventory,
+    BatteryInventory,
     CameraInventory,
     Comparison,
     CpuTopology,
@@ -17,7 +19,9 @@ from device_audit.models import (
     KernelInfo,
     PackageInfo,
     SensorInventory,
+    StorageInventory,
     TelephonyInfo,
+    ThermalInventory,
 )
 
 _IDENTITY_PROPERTIES = {
@@ -49,6 +53,10 @@ def evaluate_profile(
     camera: CameraInventory | None = None,
     sensors: SensorInventory | None = None,
     hal: HalInventory | None = None,
+    audio: AudioInventory | None = None,
+    battery: BatteryInventory | None = None,
+    thermal: ThermalInventory | None = None,
+    storage: StorageInventory | None = None,
 ) -> list[Finding]:
     """Evaluate only those expectations explicitly declared by a profile."""
 
@@ -63,6 +71,10 @@ def evaluate_profile(
         camera,
         sensors,
         hal,
+        audio,
+        battery,
+        thermal,
+        storage,
     )
     findings: list[Finding] = []
     for comparison in comparisons:
@@ -84,6 +96,14 @@ def evaluate_profile(
             findings.append(_sensors_finding(comparison))
         elif comparison.category == "hal":
             findings.append(_hal_finding(comparison))
+        elif comparison.category == "audio":
+            findings.append(_phase4_finding(comparison, "AUDIO_PROFILE_MISMATCH", "Audio inventory differs from the selected profile's explicit reference."))
+        elif comparison.category == "battery":
+            findings.append(_phase4_finding(comparison, "BATTERY_PROFILE_MISMATCH", "Battery inventory differs from the selected profile's explicit reference."))
+        elif comparison.category == "thermal":
+            findings.append(_phase4_finding(comparison, "THERMAL_PROFILE_MISMATCH", "Thermal or power inventory differs from the selected profile's explicit reference."))
+        elif comparison.category == "storage":
+            findings.append(_phase4_finding(comparison, "STORAGE_PROFILE_MISMATCH", "Storage inventory differs from the selected profile's explicit reference."))
         else:
             findings.append(_property_finding(comparison))
     return findings
@@ -100,6 +120,10 @@ def compare_profile(
     camera: CameraInventory | None = None,
     sensors: SensorInventory | None = None,
     hal: HalInventory | None = None,
+    audio: AudioInventory | None = None,
+    battery: BatteryInventory | None = None,
+    thermal: ThermalInventory | None = None,
+    storage: StorageInventory | None = None,
 ) -> list[Comparison]:
     """Return explicit matched, mismatched, or not-evaluated comparison states."""
 
@@ -115,6 +139,10 @@ def compare_profile(
     comparisons.extend(_compare_camera(camera, profile))
     comparisons.extend(_compare_sensors(sensors, profile))
     comparisons.extend(_compare_hal(hal, profile))
+    comparisons.extend(_compare_audio(audio, profile))
+    comparisons.extend(_compare_battery(battery, profile))
+    comparisons.extend(_compare_thermal(thermal, profile))
+    comparisons.extend(_compare_storage(storage, profile))
     return comparisons
 
 
@@ -485,6 +513,188 @@ def _compare_hal(hal: HalInventory | None, profile: ExpectedProfile) -> list[Com
         )
     return comparisons
 
+
+def _compare_audio(audio: AudioInventory | None, profile: ExpectedProfile) -> list[Comparison]:
+    comparisons: list[Comparison] = []
+    usable_audio = audio if audio and audio.service_status != "unavailable" and (audio.output_devices or audio.input_devices or not audio.parse_warnings) else None
+    if profile.audio_minimum_output_device_count is not None:
+        comparisons.append(_minimum_comparison(
+            "audio.output_device_count", "audio", profile.audio_minimum_output_device_count,
+            len(usable_audio.output_devices) if usable_audio else None, ("audio.dumpsys_audio",),
+        ))
+    if profile.audio_minimum_input_device_count is not None:
+        comparisons.append(_minimum_comparison(
+            "audio.input_device_count", "audio", profile.audio_minimum_input_device_count,
+            len(usable_audio.input_devices) if usable_audio else None, ("audio.dumpsys_audio",),
+        ))
+    if profile.audio_required_output_device_types:
+        comparisons.append(_required_values_comparison(
+            "audio.required_output_device_types", "audio", profile.audio_required_output_device_types,
+            {device.device_type for device in usable_audio.output_devices if device.device_type} if usable_audio else None,
+            ("audio.dumpsys_audio", "audio.policy_ports"),
+        ))
+    if profile.audio_required_input_device_types:
+        comparisons.append(_required_values_comparison(
+            "audio.required_input_device_types", "audio", profile.audio_required_input_device_types,
+            {device.device_type for device in usable_audio.input_devices if device.device_type} if usable_audio else None,
+            ("audio.dumpsys_audio", "audio.policy_ports"),
+        ))
+    if profile.audio_required_output_formats:
+        comparisons.append(_required_values_comparison(
+            "audio.required_output_formats", "audio", profile.audio_required_output_formats,
+            {value for device in usable_audio.output_devices for value in device.formats} if usable_audio else None,
+            ("audio.dumpsys_audio", "audio.policy_ports"),
+        ))
+    if profile.audio_required_sample_rates:
+        observed = {str(rate) for device in usable_audio.output_devices for rate in device.sample_rates} if usable_audio else None
+        comparisons.append(_required_values_comparison(
+            "audio.required_sample_rates", "audio", tuple(str(rate) for rate in profile.audio_required_sample_rates),
+            observed, ("audio.dumpsys_audio", "audio.policy_ports"),
+        ))
+    if profile.audio_require_service_available is not None:
+        comparisons.append(_status_bool_comparison(
+            "audio.service_available", "audio", profile.audio_require_service_available,
+            audio.service_status == "available" if audio and audio.service_status is not None else None,
+            ("audio.dumpsys_audio",),
+        ))
+    if profile.audio_require_policy_available is not None:
+        comparisons.append(_status_bool_comparison(
+            "audio.policy_available", "audio", profile.audio_require_policy_available,
+            audio.audio_policy_status == "available" if audio and audio.audio_policy_status is not None else None,
+            ("audio.audio_policy", "audio.policy_ports"),
+        ))
+    return comparisons
+
+
+def _compare_battery(battery: BatteryInventory | None, profile: ExpectedProfile) -> list[Comparison]:
+    comparisons: list[Comparison] = []
+    if profile.battery_require_present is not None:
+        comparisons.append(_status_bool_comparison(
+            "battery.present", "battery", profile.battery_require_present,
+            battery.battery_present if battery else None, ("battery.dumpsys_battery",),
+        ))
+    if profile.battery_allowed_health:
+        comparisons.append(_allowed_comparison(
+            "battery.health", "battery", list(profile.battery_allowed_health),
+            battery.battery_health if battery else None, ("battery.dumpsys_battery", "battery.cmd_health"),
+        ))
+    if profile.battery_allowed_plugged_sources:
+        comparisons.append(_allowed_comparison(
+            "battery.plugged_source", "battery", list(profile.battery_allowed_plugged_sources),
+            battery.plugged_source if battery else None, ("battery.dumpsys_battery", "battery.cmd_plugged"),
+        ))
+    if profile.battery_minimum_level_percent is not None:
+        comparisons.append(_minimum_comparison(
+            "battery.level_percent", "battery", profile.battery_minimum_level_percent,
+            battery.level_percent if battery else None, ("battery.dumpsys_battery", "battery.cmd_level"),
+        ))
+    if profile.battery_maximum_temperature_tenths_c is not None:
+        observed = battery.temperature_tenths_c if battery else None
+        comparisons.append(_maximum_comparison(
+            "battery.temperature_tenths_c", "battery", profile.battery_maximum_temperature_tenths_c,
+            observed, ("battery.dumpsys_battery", "battery.cmd_temperature"),
+        ))
+    if profile.battery_require_property_service_available is not None:
+        comparisons.append(_status_bool_comparison(
+            "battery.property_service_available", "battery", profile.battery_require_property_service_available,
+            battery.property_service_status == "available" if battery and battery.property_service_status is not None else None,
+            ("battery.properties",),
+        ))
+    return comparisons
+
+
+def _compare_thermal(thermal: ThermalInventory | None, profile: ExpectedProfile) -> list[Comparison]:
+    comparisons: list[Comparison] = []
+    if profile.thermal_require_service_available is not None:
+        comparisons.append(_status_bool_comparison(
+            "thermal.service_available", "thermal", profile.thermal_require_service_available,
+            thermal.thermal_service_status == "available" if thermal and thermal.thermal_service_status is not None else None,
+            ("thermal.service", "thermal.cmd_dump"),
+        ))
+    if profile.thermal_required_sensor_types:
+        comparisons.append(_required_values_comparison(
+            "thermal.required_sensor_types", "thermal", profile.thermal_required_sensor_types,
+            {sensor.type for sensor in thermal.temperature_sensors} if thermal else None,
+            ("thermal.service", "thermal.cmd_dump"),
+        ))
+    if profile.thermal_allowed_current_severity:
+        comparisons.append(_allowed_comparison(
+            "thermal.current_severity", "thermal", list(profile.thermal_allowed_current_severity),
+            thermal.current_thermal_severity if thermal else None, ("thermal.service", "thermal.cmd_dump"),
+        ))
+    for sensor_type, maximum in profile.thermal_maximum_sensor_temperature_c.items():
+        observed_values = [sensor.temperature_c for sensor in thermal.temperature_sensors if sensor.type == sensor_type and sensor.temperature_c is not None] if thermal else None
+        comparisons.append(_maximum_comparison(
+            f"thermal.maximum_temperature.{sensor_type}", "thermal", maximum,
+            max(observed_values) if observed_values else None, ("thermal.service", "thermal.cmd_dump"),
+        ))
+    if profile.thermal_require_power_service_available is not None:
+        comparisons.append(_status_bool_comparison(
+            "thermal.power_service_available", "thermal", profile.thermal_require_power_service_available,
+            thermal.power_service_status == "available" if thermal and thermal.power_service_status is not None else None,
+            ("thermal.power",),
+        ))
+    if profile.thermal_allowed_wakefulness:
+        comparisons.append(_allowed_comparison(
+            "thermal.wakefulness", "thermal", list(profile.thermal_allowed_wakefulness),
+            thermal.wakefulness if thermal else None, ("thermal.power", "thermal.deviceidle"),
+        ))
+    return comparisons
+
+
+def _compare_storage(storage: StorageInventory | None, profile: ExpectedProfile) -> list[Comparison]:
+    comparisons: list[Comparison] = []
+    if profile.storage_required_filesystem_types:
+        comparisons.append(_required_values_comparison(
+            "storage.required_filesystem_types", "storage", profile.storage_required_filesystem_types,
+            {mount.filesystem for mount in storage.mounts if mount.filesystem} if storage else None,
+            ("storage.mount", "storage.proc_mounts"),
+        ))
+    if profile.storage_required_mount_points:
+        comparisons.append(_required_values_comparison(
+            "storage.required_mount_points", "storage", profile.storage_required_mount_points,
+            {mount.target for mount in storage.mounts} if storage else None,
+            ("storage.mount", "storage.proc_mounts", "storage.df_k"),
+        ))
+    if profile.storage_require_data_mount_read_write is not None:
+        data_mount = next((mount for mount in storage.mounts if mount.target == "/data"), None) if storage else None
+        comparisons.append(_status_bool_comparison(
+            "storage.data_mount_read_write", "storage", profile.storage_require_data_mount_read_write,
+            data_mount.read_only is False if data_mount and data_mount.read_only is not None else None,
+            ("storage.mount", "storage.proc_mounts"),
+        ))
+    if profile.storage_minimum_data_available_kb is not None:
+        data_mount = next((mount for mount in storage.mounts if mount.target == "/data"), None) if storage else None
+        comparisons.append(_minimum_comparison(
+            "storage.data_available_kb", "storage", profile.storage_minimum_data_available_kb,
+            data_mount.available_kb if data_mount else None, ("storage.df_k",),
+        ))
+    if profile.storage_allowed_volume_types:
+        comparisons.append(_allowed_comparison(
+            "storage.volume_types", "storage", list(profile.storage_allowed_volume_types),
+            [volume.type for volume in storage.volumes] if storage and storage.volumes else None,
+            ("storage.volumes",),
+        ))
+    if profile.storage_require_mount_service_available is not None:
+        comparisons.append(_status_bool_comparison(
+            "storage.mount_service_available", "storage", profile.storage_require_mount_service_available,
+            storage.mount_service_status == "available" if storage and storage.mount_service_status is not None else None,
+            ("storage.dumpsys_mount",),
+        ))
+    return comparisons
+
+
+def _minimum_comparison(field: str, category: str, expected: int | float, observed: int | float | None, evidence: tuple[str, ...]) -> Comparison:
+    return Comparison(field, category, "not_evaluated" if observed is None else "matched" if observed >= expected else "mismatched", str(expected), str(observed) if observed is not None else None, evidence)
+
+
+def _maximum_comparison(field: str, category: str, expected: int | float, observed: int | float | None, evidence: tuple[str, ...]) -> Comparison:
+    return Comparison(field, category, "not_evaluated" if observed is None else "matched" if observed <= expected else "mismatched", str(expected), str(observed) if observed is not None else None, evidence)
+
+
+def _status_bool_comparison(field: str, category: str, expected: bool, observed: bool | None, evidence: tuple[str, ...]) -> Comparison:
+    return Comparison(field, category, "not_evaluated" if observed is None else "matched" if observed == expected else "mismatched", str(expected).lower(), str(observed).lower() if observed is not None else None, evidence)
+
 def _required_values_comparison(
     field: str,
     category: str,
@@ -642,4 +852,19 @@ def _phase3_finding(comparison: Comparison, finding_id: str, summary: str) -> Fi
         expected=comparison.expected,
         observed=comparison.observed,
         recommendation="Review the selected profile and observed hardware inventory before drawing conclusions.",
+    )
+
+
+def _phase4_finding(comparison: Comparison, finding_id: str, summary: str) -> Finding:
+    return Finding(
+        id=finding_id,
+        title="Explicit system inventory expectation differs",
+        category=comparison.category,
+        severity="medium",
+        confidence="high",
+        summary=summary,
+        evidence=comparison.evidence,
+        expected=comparison.expected,
+        observed=comparison.observed,
+        recommendation="Review the selected profile and observed system inventory before drawing conclusions.",
     )

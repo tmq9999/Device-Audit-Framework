@@ -1,0 +1,5 @@
+Output threads: 2
+Input threads: 1
+Active playback clients: 2
+Active recording clients: 1
+Effects: 3

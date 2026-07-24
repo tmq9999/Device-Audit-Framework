@@ -1,6 +1,8 @@
 """Built-in read-only collectors shipped with the research release."""
 
 from device_audit.collectors.builtin import (
+    AUDIO_COMMANDS,
+    BATTERY_COMMANDS,
     BUILTIN_COLLECTORS,
     CAMERA_COMMANDS,
     DEFAULT_PACKAGES,
@@ -11,11 +13,15 @@ from device_audit.collectors.builtin import (
     ROOT_RUNTIME_COMMANDS,
     RUNTIME_COMMANDS,
     SENSOR_COMMANDS,
+    STORAGE_COMMANDS,
     TELEPHONY_COMMANDS,
+    THERMAL_COMMANDS,
     normalize_packages,
 )
 
 __all__ = [
+    "AUDIO_COMMANDS",
+    "BATTERY_COMMANDS",
     "BUILTIN_COLLECTORS",
     "CAMERA_COMMANDS",
     "DEFAULT_PACKAGES",
@@ -26,6 +32,8 @@ __all__ = [
     "ROOT_RUNTIME_COMMANDS",
     "RUNTIME_COMMANDS",
     "SENSOR_COMMANDS",
+    "STORAGE_COMMANDS",
     "TELEPHONY_COMMANDS",
+    "THERMAL_COMMANDS",
     "normalize_packages",
 ]

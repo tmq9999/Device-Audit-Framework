@@ -1,0 +1,4 @@
+Filesystem 1K-blocks Used Available Use% Mounted on
+/dev/block/dm-0 100000 20000 80000 20% /data
+/dev/block/dm-1 50000 10000 40000 20% /system
+/tmpfs 1024 100 924 10% /storage/emulated/0

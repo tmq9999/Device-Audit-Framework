@@ -36,7 +36,7 @@ def profile_from_mapping(payload: Any) -> ExpectedProfile:
     if not isinstance(payload, dict):
         raise ProfileValidationError("profile root must be an object")
     schema_version = _required_string(payload, "schema_version")
-    if not schema_version.startswith(("1.", "2.", "3.")):
+    if not schema_version.startswith(("1.", "2.", "3.", "4.")):
         raise ProfileValidationError(f"unsupported profile schema_version: {schema_version}")
     name = _required_string(payload, "name")
     identity = _string_mapping(payload.get("identity", {}), "identity")
@@ -192,6 +192,76 @@ def profile_from_mapping(payload: Any) -> ExpectedProfile:
     ):
         raise ProfileValidationError("hal.allowed_transports contains an invalid transport")
 
+    audio = payload.get("audio", {})
+    if not isinstance(audio, dict):
+        raise ProfileValidationError("audio must be an object")
+    audio_minimum_output = _optional_nonnegative_int(
+        audio.get("minimum_output_device_count"), "audio.minimum_output_device_count"
+    )
+    audio_minimum_input = _optional_nonnegative_int(
+        audio.get("minimum_input_device_count"), "audio.minimum_input_device_count"
+    )
+    audio_output_types = _string_list(
+        audio.get("required_output_device_types", []), "audio.required_output_device_types"
+    )
+    audio_input_types = _string_list(
+        audio.get("required_input_device_types", []), "audio.required_input_device_types"
+    )
+    audio_formats = _string_list(audio.get("required_output_formats", []), "audio.required_output_formats")
+    audio_rates = _positive_integer_list(audio.get("required_sample_rates", []), "audio.required_sample_rates")
+    audio_require_service = _optional_bool(audio.get("require_audio_service_available"), "audio.require_audio_service_available")
+    audio_require_policy = _optional_bool(audio.get("require_audio_policy_available"), "audio.require_audio_policy_available")
+
+    battery = payload.get("battery", {})
+    if not isinstance(battery, dict):
+        raise ProfileValidationError("battery must be an object")
+    battery_require_present = _optional_bool(battery.get("require_present"), "battery.require_present")
+    battery_health = tuple(value.upper() for value in _string_list(battery.get("allowed_health", []), "battery.allowed_health"))
+    if any(value not in {"UNKNOWN", "GOOD", "OVERHEAT", "DEAD", "OVER_VOLTAGE", "UNSPECIFIED_FAILURE", "COLD"} for value in battery_health):
+        raise ProfileValidationError("battery.allowed_health contains an invalid health")
+    battery_plugged = tuple(value.upper() for value in _string_list(battery.get("allowed_plugged_sources", []), "battery.allowed_plugged_sources"))
+    if any(value not in {"NONE", "AC", "USB", "WIRELESS", "DOCK", "MULTIPLE", "UNKNOWN"} for value in battery_plugged):
+        raise ProfileValidationError("battery.allowed_plugged_sources contains an invalid source")
+    battery_minimum_level = _optional_bounded_int(battery.get("minimum_level_percent"), "battery.minimum_level_percent", 0, 100)
+    battery_maximum_temperature = _optional_nonnegative_int(
+        battery.get("maximum_temperature_tenths_c"), "battery.maximum_temperature_tenths_c"
+    )
+    battery_require_service = _optional_bool(
+        battery.get("require_property_service_available"), "battery.require_property_service_available"
+    )
+
+    thermal = payload.get("thermal", {})
+    if not isinstance(thermal, dict):
+        raise ProfileValidationError("thermal must be an object")
+    thermal_require_service = _optional_bool(
+        thermal.get("require_thermal_service_available"), "thermal.require_thermal_service_available"
+    )
+    thermal_required_types = tuple(value.upper() for value in _string_list(thermal.get("required_sensor_types", []), "thermal.required_sensor_types"))
+    if any(value not in {"CPU", "GPU", "BATTERY", "SKIN", "USB_PORT", "POWER_AMPLIFIER", "BCL_VOLTAGE", "BCL_CURRENT", "BCL_PERCENTAGE", "NPU", "MODEM", "SOC", "AMBIENT", "UNKNOWN"} for value in thermal_required_types):
+        raise ProfileValidationError("thermal.required_sensor_types contains an invalid type")
+    thermal_severity = tuple(value.upper() for value in _string_list(thermal.get("allowed_current_severity", []), "thermal.allowed_current_severity"))
+    if any(value not in {"NONE", "LIGHT", "MODERATE", "SEVERE", "CRITICAL", "EMERGENCY", "SHUTDOWN", "UNKNOWN"} for value in thermal_severity):
+        raise ProfileValidationError("thermal.allowed_current_severity contains an invalid severity")
+    thermal_maximum = _float_mapping(thermal.get("maximum_sensor_temperature_c", {}), "thermal.maximum_sensor_temperature_c")
+    thermal_require_power = _optional_bool(
+        thermal.get("require_power_service_available"), "thermal.require_power_service_available"
+    )
+    thermal_wakefulness = tuple(value.upper() for value in _string_list(thermal.get("allowed_wakefulness", []), "thermal.allowed_wakefulness"))
+    if any(value not in {"AWAKE", "ASLEEP", "DREAMING", "DOZING", "UNKNOWN"} for value in thermal_wakefulness):
+        raise ProfileValidationError("thermal.allowed_wakefulness contains an invalid state")
+
+    storage = payload.get("storage", {})
+    if not isinstance(storage, dict):
+        raise ProfileValidationError("storage must be an object")
+    storage_filesystems = _string_list(storage.get("required_filesystem_types", []), "storage.required_filesystem_types")
+    storage_mount_points = _string_list(storage.get("required_mount_points", []), "storage.required_mount_points")
+    storage_require_rw = _optional_bool(storage.get("require_data_mount_read_write"), "storage.require_data_mount_read_write")
+    storage_minimum_available = _optional_nonnegative_int(storage.get("minimum_data_available_kb"), "storage.minimum_data_available_kb")
+    storage_volume_types = tuple(value.upper() for value in _string_list(storage.get("allowed_volume_types", []), "storage.allowed_volume_types"))
+    if any(value not in {"PUBLIC", "PRIVATE", "EMULATED", "STUB", "ASEC", "OBB", "UNKNOWN"} for value in storage_volume_types):
+        raise ProfileValidationError("storage.allowed_volume_types contains an invalid volume type")
+    storage_require_service = _optional_bool(storage.get("require_mount_service_available"), "storage.require_mount_service_available")
+
     return ExpectedProfile(
         schema_version=schema_version,
         name=name,
@@ -219,6 +289,32 @@ def profile_from_mapping(payload: Any) -> ExpectedProfile:
         hal_required_interfaces=hal_required_interfaces,
         hal_required_families=hal_required_families,
         hal_allowed_transports=hal_allowed_transports,
+        audio_minimum_output_device_count=audio_minimum_output,
+        audio_minimum_input_device_count=audio_minimum_input,
+        audio_required_output_device_types=audio_output_types,
+        audio_required_input_device_types=audio_input_types,
+        audio_required_output_formats=audio_formats,
+        audio_required_sample_rates=audio_rates,
+        audio_require_service_available=audio_require_service,
+        audio_require_policy_available=audio_require_policy,
+        battery_require_present=battery_require_present,
+        battery_allowed_health=battery_health,
+        battery_allowed_plugged_sources=battery_plugged,
+        battery_minimum_level_percent=battery_minimum_level,
+        battery_maximum_temperature_tenths_c=battery_maximum_temperature,
+        battery_require_property_service_available=battery_require_service,
+        thermal_require_service_available=thermal_require_service,
+        thermal_required_sensor_types=thermal_required_types,
+        thermal_allowed_current_severity=thermal_severity,
+        thermal_maximum_sensor_temperature_c=thermal_maximum,
+        thermal_require_power_service_available=thermal_require_power,
+        thermal_allowed_wakefulness=thermal_wakefulness,
+        storage_required_filesystem_types=storage_filesystems,
+        storage_required_mount_points=storage_mount_points,
+        storage_require_data_mount_read_write=storage_require_rw,
+        storage_minimum_data_available_kb=storage_minimum_available,
+        storage_allowed_volume_types=storage_volume_types,
+        storage_require_mount_service_available=storage_require_service,
     )
 
 
@@ -275,6 +371,45 @@ def _optional_nonnegative_int(value: Any, name: str) -> int | None:
     if isinstance(value, bool) or not isinstance(value, int) or value < 0:
         raise ProfileValidationError(f"{name} must be a non-negative integer")
     return value
+
+
+def _optional_bool(value: Any, name: str) -> bool | None:
+    if value is None:
+        return None
+    if not isinstance(value, bool):
+        raise ProfileValidationError(f"{name} must be a boolean")
+    return value
+
+
+def _optional_bounded_int(value: Any, name: str, minimum: int, maximum: int) -> int | None:
+    parsed = _optional_nonnegative_int(value, name)
+    if parsed is not None and not minimum <= parsed <= maximum:
+        raise ProfileValidationError(f"{name} must be between {minimum} and {maximum}")
+    return parsed
+
+
+def _positive_integer_list(value: Any, name: str) -> tuple[int, ...]:
+    if not isinstance(value, list):
+        raise ProfileValidationError(f"{name} must be a list")
+    result: list[int] = []
+    for item in value:
+        if isinstance(item, bool) or not isinstance(item, int) or item <= 0:
+            raise ProfileValidationError(f"{name} must contain positive integers")
+        result.append(item)
+    return tuple(dict.fromkeys(result))
+
+
+def _float_mapping(value: Any, name: str) -> dict[str, float]:
+    if not isinstance(value, dict):
+        raise ProfileValidationError(f"{name} must be an object")
+    result: dict[str, float] = {}
+    for key, item in value.items():
+        if not isinstance(key, str) or not key:
+            raise ProfileValidationError(f"{name} keys must be non-empty strings")
+        if isinstance(item, bool) or not isinstance(item, (int, float)):
+            raise ProfileValidationError(f"{name} values must be numbers")
+        result[key.upper()] = float(item)
+    return dict(sorted(result.items()))
 
 
 def _parse_package_expectations(value: Any) -> dict[str, PackageExpectation]:

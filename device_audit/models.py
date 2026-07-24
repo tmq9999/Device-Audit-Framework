@@ -262,6 +262,191 @@ class HalInventory:
 
 
 @dataclass(frozen=True)
+class AudioDevice:
+    """A bounded, metadata-only audio device or port observation."""
+
+    id: str
+    role: str
+    direction: str
+    device_type: str | None
+    address: str | None
+    product_name: str | None
+    connected: bool | None
+    active: bool | None
+    formats: tuple[str, ...]
+    sample_rates: tuple[int, ...]
+    channel_masks: tuple[str, ...]
+    flags: tuple[str, ...]
+    source: str
+
+
+@dataclass(frozen=True)
+class AudioInventory:
+    """Read-only audio service and route metadata without media activity."""
+
+    service_status: str | None
+    audio_server_status: str | None
+    audio_policy_status: str | None
+    current_mode: str | None
+    master_muted: bool | None
+    microphone_muted: bool | None
+    fixed_volume: bool | None
+    communication_device: str | None
+    output_devices: tuple[AudioDevice, ...]
+    input_devices: tuple[AudioDevice, ...]
+    output_thread_count: int | None
+    input_thread_count: int | None
+    active_playback_client_count: int | None
+    active_recording_client_count: int | None
+    audio_focus_owner_count: int | None
+    active_patch_count: int | None
+    effect_count: int | None
+    parse_warnings: tuple[str, ...]
+
+
+@dataclass(frozen=True)
+class BatteryInventory:
+    """Observable battery and charging state without health inference."""
+
+    battery_present: bool | None
+    battery_status: str | None
+    battery_health: str | None
+    plugged_source: str | None
+    charging: bool | None
+    level_percent: int | None
+    scale: int | None
+    voltage_mv: int | None
+    temperature_tenths_c: int | None
+    temperature_c: float | None
+    current_now_ua: int | None
+    current_average_ua: int | None
+    charge_counter_uah: int | None
+    energy_counter_nwh: int | None
+    max_charging_current_ua: int | None
+    max_charging_voltage_uv: int | None
+    technology: str | None
+    property_service_status: str | None
+    parse_warnings: tuple[str, ...]
+
+
+@dataclass(frozen=True)
+class ThermalSensor:
+    """One normalized thermal sensor observation."""
+
+    name: str
+    type: str
+    temperature_c: float | None
+    severity: str
+    throttling: bool | None
+    hot_thresholds_c: tuple[float, ...]
+    cold_thresholds_c: tuple[float, ...]
+    source: str
+
+
+@dataclass(frozen=True)
+class CoolingDevice:
+    """One observable cooling-device state."""
+
+    name: str
+    type: str
+    current_value: int | None
+    max_value: int | None
+    source: str
+
+
+@dataclass(frozen=True)
+class ThermalInventory:
+    """Read-only thermal and power state inventory."""
+
+    thermal_service_status: str | None
+    thermal_hal_status: str | None
+    current_thermal_severity: str | None
+    temperature_sensors: tuple[ThermalSensor, ...]
+    cooling_devices: tuple[CoolingDevice, ...]
+    power_service_status: str | None
+    wakefulness: str | None
+    interactive: bool | None
+    battery_saver_enabled: bool | None
+    adaptive_power_saver_enabled: bool | None
+    fixed_performance_mode_enabled: bool | None
+    current_power_mode: str | None
+    device_idle_mode: bool | None
+    light_idle_mode: bool | None
+    active_wake_lock_count: int | None
+    suspend_blocker_count: int | None
+    last_wake_reason: str | None
+    last_sleep_reason: str | None
+    parse_warnings: tuple[str, ...]
+
+
+@dataclass(frozen=True)
+class StorageMount:
+    """A normalized mount observation with optional capacity metrics."""
+
+    source: str | None
+    target: str
+    filesystem: str | None
+    read_only: bool | None
+    options: tuple[str, ...]
+    total_kb: int | None
+    used_kb: int | None
+    available_kb: int | None
+    usage_percent: int | None
+    virtual: bool
+    bind: bool
+    overlay: bool
+    source_command: str
+
+
+@dataclass(frozen=True)
+class StorageVolume:
+    """An Android storage volume with identifiers redacted by report rendering."""
+
+    id: str | None
+    type: str
+    state: str
+    filesystem_uuid: str | None
+    disk_id: str | None
+    primary: bool | None
+    emulated: bool | None
+    source: str
+
+
+@dataclass(frozen=True)
+class StoragePartition:
+    """One parsed /proc/partitions entry."""
+
+    major: int
+    minor: int
+    blocks: int
+    name: str
+
+
+@dataclass(frozen=True)
+class FilesystemSupport:
+    """One filesystem name advertised by /proc/filesystems."""
+
+    name: str
+    nodev: bool
+
+
+@dataclass(frozen=True)
+class StorageInventory:
+    """Read-only mount, volume, partition, and filesystem inventory."""
+
+    mounts: tuple[StorageMount, ...]
+    volumes: tuple[StorageVolume, ...]
+    disk_count: int | None
+    partitions: tuple[StoragePartition, ...]
+    supported_filesystems: tuple[FilesystemSupport, ...]
+    primary_storage_uuid_state: str | None
+    mount_service_status: str | None
+    encryption_state: str | None
+    metadata_encryption_state: str | None
+    parse_warnings: tuple[str, ...]
+
+
+@dataclass(frozen=True)
 class PackageExpectation:
     """Explicit profile expectations for one package."""
 
@@ -301,6 +486,32 @@ class ExpectedProfile:
     hal_required_interfaces: tuple[str, ...] = ()
     hal_required_families: tuple[str, ...] = ()
     hal_allowed_transports: tuple[str, ...] = ()
+    audio_minimum_output_device_count: int | None = None
+    audio_minimum_input_device_count: int | None = None
+    audio_required_output_device_types: tuple[str, ...] = ()
+    audio_required_input_device_types: tuple[str, ...] = ()
+    audio_required_output_formats: tuple[str, ...] = ()
+    audio_required_sample_rates: tuple[int, ...] = ()
+    audio_require_service_available: bool | None = None
+    audio_require_policy_available: bool | None = None
+    battery_require_present: bool | None = None
+    battery_allowed_health: tuple[str, ...] = ()
+    battery_allowed_plugged_sources: tuple[str, ...] = ()
+    battery_minimum_level_percent: int | None = None
+    battery_maximum_temperature_tenths_c: int | None = None
+    battery_require_property_service_available: bool | None = None
+    thermal_require_service_available: bool | None = None
+    thermal_required_sensor_types: tuple[str, ...] = ()
+    thermal_allowed_current_severity: tuple[str, ...] = ()
+    thermal_maximum_sensor_temperature_c: Mapping[str, float] = field(default_factory=dict)
+    thermal_require_power_service_available: bool | None = None
+    thermal_allowed_wakefulness: tuple[str, ...] = ()
+    storage_required_filesystem_types: tuple[str, ...] = ()
+    storage_required_mount_points: tuple[str, ...] = ()
+    storage_require_data_mount_read_write: bool | None = None
+    storage_minimum_data_available_kb: int | None = None
+    storage_allowed_volume_types: tuple[str, ...] = ()
+    storage_require_mount_service_available: bool | None = None
 
 
 @dataclass(frozen=True)

@@ -480,6 +480,10 @@ def test_capture_skip_flags_omit_all_phase2_commands(monkeypatch, tmp_path) -> N
             skip_camera=True,
             skip_sensors=True,
             skip_hal=True,
+            skip_audio=True,
+            skip_battery=True,
+            skip_thermal=True,
+            skip_storage=True,
         ),
     ).bundle_path
     manifest = load_evidence_bundle(bundle)

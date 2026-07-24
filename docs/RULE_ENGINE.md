@@ -32,12 +32,20 @@ Integrity, Google One, account, or other external-service behavior.
   mismatch IDs.
 - Explicit Phase 3 references use `CAMERA_PROFILE_MISMATCH`,
   `SENSORS_PROFILE_MISMATCH`, or `HAL_PROFILE_MISMATCH`.
+- Explicit Phase 4 references use `AUDIO_PROFILE_MISMATCH`,
+  `BATTERY_PROFILE_MISMATCH`, `THERMAL_PROFILE_MISMATCH`, or
+  `STORAGE_PROFILE_MISMATCH`.
 
 Camera, sensor, and HAL observations are bounded summaries. Extra cameras,
 sensors, interfaces, capabilities, and transports do not create findings when
 the profile does not require their absence. Unsupported, permission-denied,
 timed-out, unavailable, and incomplete sections remain `not_evaluated` for
 profile comparison.
+
+Audio, battery, thermal, and storage observations follow the same rule. The
+engine does not infer battery degradation, storage health, thermal quality,
+performance, authenticity, integrity, or eligibility. It does not compare
+storage UUIDs, disk names, audio effect UUIDs, or transient client identifiers.
 
 Finding severity and confidence describe the comparison evidence; they are
 not a device eligibility judgment. Researchers must verify the selected

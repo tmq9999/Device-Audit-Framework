@@ -12,6 +12,8 @@ from typing import Any
 from device_audit import __version__
 from device_audit.bundle import load_evidence_bundle
 from device_audit.models import (
+    AudioInventory,
+    BatteryInventory,
     CameraInventory,
     Comparison,
     CpuTopology,
@@ -23,10 +25,14 @@ from device_audit.models import (
     PackageInfo,
     RuntimeMarkers,
     SensorInventory,
+    StorageInventory,
     TelephonyInfo,
+    ThermalInventory,
 )
 from device_audit.parsers import (
     parse_camera_info,
+    parse_audio_info,
+    parse_battery_info,
     parse_cpuinfo,
     parse_display_info,
     parse_hal_info,
@@ -37,7 +43,9 @@ from device_audit.parsers import (
     parse_package_info,
     parse_runtime_markers,
     parse_sensor_info,
+    parse_storage_info,
     parse_telephony_info,
+    parse_thermal_info,
 )
 from device_audit.profiles import load_profile
 from device_audit.redaction import redact_text
@@ -90,6 +98,10 @@ def analyze_bundle(
         properties,
         collector_states,
     )
+    audio, audio_status = _parse_audio(bundle_dir, commands, collector_states)
+    battery, battery_status = _parse_battery(bundle_dir, commands, collector_states)
+    thermal, thermal_status = _parse_thermal(bundle_dir, commands, collector_states)
+    storage, storage_status = _parse_storage(bundle_dir, commands, properties, collector_states)
 
     profile = load_profile(profile_path) if profile_path else None
     comparisons = tuple(
@@ -104,6 +116,10 @@ def analyze_bundle(
             camera if camera_status == "observed" else None,
             sensors if sensors_status == "observed" else None,
             hal if hal_status == "observed" else None,
+            audio if audio_status == "observed" else None,
+            battery if battery_status == "observed" else None,
+            thermal if thermal_status == "observed" else None,
+            storage if storage_status == "observed" else None,
         )
     )
     findings = tuple(
@@ -118,6 +134,10 @@ def analyze_bundle(
             camera if camera_status == "observed" else None,
             sensors if sensors_status == "observed" else None,
             hal if hal_status == "observed" else None,
+            audio if audio_status == "observed" else None,
+            battery if battery_status == "observed" else None,
+            thermal if thermal_status == "observed" else None,
+            storage if storage_status == "observed" else None,
         )
     )
     collector_errors = sum(1 for entry in command_entries if entry["status"] != "observed")
@@ -207,11 +227,36 @@ def analyze_bundle(
             "hal",
             source_command_ids={"runtime.services", "properties.getprop"},
         ),
+        "audio": _section_payload(
+            audio_status,
+            asdict(audio) if audio else {},
+            command_entries,
+            "audio",
+        ),
+        "battery": _section_payload(
+            battery_status,
+            asdict(battery) if battery else {},
+            command_entries,
+            "battery",
+        ),
+        "thermal": _section_payload(
+            thermal_status,
+            asdict(thermal) if thermal else {},
+            command_entries,
+            "thermal",
+        ),
+        "storage": _section_payload(
+            storage_status,
+            asdict(storage) if storage else {},
+            command_entries,
+            "storage",
+            source_command_ids={"properties.getprop"},
+        ),
     }
     for section_name, section in sections.items():
         section["profile_comparison_status"] = _profile_comparison_status(comparisons, section_name)
     report = {
-        "schema_version": "3.0",
+        "schema_version": "4.0",
         "analyzer_version": __version__,
         "generated_at": _timestamp(),
         "bundle_schema_version": manifest["schema_version"],
@@ -281,6 +326,10 @@ def render_markdown_report(report: dict[str, Any]) -> str:
         ("camera", "Camera Inventory"),
         ("sensors", "Sensor Inventory"),
         ("hal", "HAL and Native Services"),
+        ("audio", "Audio Inventory"),
+        ("battery", "Battery and Charging Inventory"),
+        ("thermal", "Thermal and Power Inventory"),
+        ("storage", "Storage Inventory"),
     )
     for key, title in section_titles:
         _append_markdown_section(lines, title, report["sections"][key])
@@ -549,6 +598,112 @@ def _parse_hal(
     )
     has_data = hal.hal_count > 0 or hal.binder_service_count > 0 or hal.dumpsys_service_count > 0 or bool(hal.hal_properties)
     return hal, _parsed_section_status(entries, has_data)
+
+
+def _parse_audio(
+    bundle_dir: Path,
+    commands: dict[str, dict[str, Any]],
+    collector_states: dict[str, str],
+) -> tuple[AudioInventory | None, str]:
+    entries = _entries_by_prefix(commands, "audio.")
+    if not entries:
+        return None, collector_states.get("audio", "not_evaluated")
+    audio = parse_audio_info(
+        _observed_stdout(bundle_dir, commands.get("audio.dumpsys_audio")),
+        _observed_stdout(bundle_dir, commands.get("audio.audio_flinger")),
+        _observed_stdout(bundle_dir, commands.get("audio.audio_policy")),
+        _observed_stdout(bundle_dir, commands.get("audio.policy_ports")),
+        _observed_stdout(bundle_dir, commands.get("audio.policy_patches")),
+    )
+    has_data = bool(audio.output_devices or audio.input_devices or audio.parse_warnings) or audio.service_status is not None
+    return audio, _parsed_section_status(entries, has_data)
+
+
+def _parse_battery(
+    bundle_dir: Path,
+    commands: dict[str, dict[str, Any]],
+    collector_states: dict[str, str],
+) -> tuple[BatteryInventory | None, str]:
+    entries = _entries_by_prefix(commands, "battery.")
+    if not entries:
+        return None, collector_states.get("battery", "not_evaluated")
+    command_values = {
+        name: _observed_stdout(bundle_dir, commands.get(command_id))
+        for name, command_id in (
+            ("status", "battery.cmd_status"),
+            ("health", "battery.cmd_health"),
+            ("level", "battery.cmd_level"),
+            ("plugged", "battery.cmd_plugged"),
+            ("current now", "battery.cmd_current"),
+            ("temperature", "battery.cmd_temperature"),
+            ("charge counter", "battery.cmd_counter"),
+            ("charging", "battery.cmd_charging_status"),
+        )
+    }
+    for key, unit in (
+        ("current now", "uA"),
+        ("temperature", "tenths C"),
+        ("charge counter", "uAh"),
+    ):
+        value = command_values[key].strip()
+        if value and value.lstrip("-").isdigit():
+            command_values[key] = f"{value} {unit}"
+    battery = parse_battery_info(
+        _observed_stdout(bundle_dir, commands.get("battery.dumpsys_battery")),
+        _observed_stdout(bundle_dir, commands.get("battery.properties")),
+        command_values,
+    )
+    has_data = any(value is not None for value in asdict(battery).values() if not isinstance(value, tuple))
+    return battery, _parsed_section_status(entries, has_data)
+
+
+def _parse_thermal(
+    bundle_dir: Path,
+    commands: dict[str, dict[str, Any]],
+    collector_states: dict[str, str],
+) -> tuple[ThermalInventory | None, str]:
+    entries = _entries_by_prefix(commands, "thermal.")
+    if not entries:
+        return None, collector_states.get("thermal", "not_evaluated")
+    thermal = parse_thermal_info(
+        _observed_stdout(bundle_dir, commands.get("thermal.service")),
+        _observed_stdout(bundle_dir, commands.get("thermal.power")),
+        _observed_stdout(bundle_dir, commands.get("thermal.deviceidle")),
+        _observed_stdout(bundle_dir, commands.get("thermal.cmd_dump")),
+        _observed_stdout(bundle_dir, commands.get("thermal.power_mode")),
+        _observed_stdout(bundle_dir, commands.get("thermal.fixed_performance_mode")),
+    )
+    has_data = bool(thermal.temperature_sensors or thermal.cooling_devices or thermal.parse_warnings) or any(
+        value is not None
+        for key, value in asdict(thermal).items()
+        if key not in {"temperature_sensors", "cooling_devices", "parse_warnings"}
+    )
+    return thermal, _parsed_section_status(entries, has_data)
+
+
+def _parse_storage(
+    bundle_dir: Path,
+    commands: dict[str, dict[str, Any]],
+    properties: dict[str, str],
+    collector_states: dict[str, str],
+) -> tuple[StorageInventory | None, str]:
+    entries = _entries_by_prefix(commands, "storage.")
+    if not entries:
+        return None, collector_states.get("storage", "not_evaluated")
+    storage = parse_storage_info(
+        _observed_stdout(bundle_dir, commands.get("storage.df_k")),
+        _observed_stdout(bundle_dir, commands.get("storage.mount")),
+        _observed_stdout(bundle_dir, commands.get("storage.proc_mounts")),
+        _observed_stdout(bundle_dir, commands.get("storage.proc_filesystems")),
+        _observed_stdout(bundle_dir, commands.get("storage.proc_partitions")),
+        _observed_stdout(bundle_dir, commands.get("storage.dumpsys_mount")),
+        _observed_stdout(bundle_dir, commands.get("storage.volumes")),
+        _observed_stdout(bundle_dir, commands.get("storage.disks")),
+        _observed_stdout(bundle_dir, commands.get("storage.primary_uuid")),
+        properties,
+    )
+    has_data = bool(storage.mounts or storage.volumes or storage.partitions or storage.supported_filesystems or storage.parse_warnings)
+    return storage, _parsed_section_status(entries, has_data)
 
 
 def _section_payload(

@@ -1,0 +1,2 @@
+nodev proc
+	ext4

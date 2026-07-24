@@ -1,0 +1,2 @@
+Device idle mode: false
+Light idle mode: false

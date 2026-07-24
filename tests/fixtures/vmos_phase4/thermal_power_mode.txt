@@ -1,0 +1,1 @@
+mode: LOW_POWER_STANDBY

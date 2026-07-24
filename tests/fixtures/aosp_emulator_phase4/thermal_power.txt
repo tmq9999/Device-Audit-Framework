@@ -1,0 +1,10 @@
+Power service status: available
+Wakefulness: AWAKE
+interactive: true
+battery saver: false
+adaptive power saver: false
+fixed performance mode enabled: false
+Active wakelocks: 1
+Suspend blockers: 2
+Last wake reason: synthetic-button
+Last sleep reason: synthetic-timeout

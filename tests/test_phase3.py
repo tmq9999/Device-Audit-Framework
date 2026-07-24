@@ -373,11 +373,15 @@ def test_capture_schema_three_skip_flags_omit_new_collectors(monkeypatch, tmp_pa
             skip_camera=True,
             skip_sensors=True,
             skip_hal=True,
+            skip_audio=True,
+            skip_battery=True,
+            skip_thermal=True,
+            skip_storage=True,
         ),
     )
     manifest = load_evidence_bundle(outcome.bundle_path)
 
-    assert manifest["schema_version"] == "3.0"
+    assert manifest["schema_version"] == "4.0"
     assert all(state == "not_evaluated" for state in manifest["collector_states"].values())
     assert not any(call in {("dumpsys", "media.camera"), ("dumpsys", "sensorservice"), ("lshal",)} for call in calls)
 
