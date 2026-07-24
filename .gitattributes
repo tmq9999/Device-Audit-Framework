@@ -1,0 +1,4 @@
+# Golden fixture bytes are content-locked by tests/test_fixture_corpus.py.
+# Disable all end-of-line conversion so every checkout (Linux, macOS,
+# Windows with any core.autocrlf setting) sees identical committed bytes.
+tests/fixtures/** -text

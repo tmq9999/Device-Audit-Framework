@@ -11,7 +11,7 @@ from device_audit.bundle import load_evidence_bundle
 
 FIXTURE_ROOT = Path(__file__).parent / "fixtures"
 EXPECTED_FIXTURE_COUNT = 440
-EXPECTED_FIXTURE_DIGEST = "d9a07a795d317db41e4840b94a217fec84bcd7c694ec3b905c4761dc2fe09581"
+EXPECTED_FIXTURE_DIGEST = "c3224c297b84113f5da147adb461f30898dec86b553f130e27a39bf7a74d89dd"
 REQUIRED_FIXTURE_FAMILIES = {
     "aosp_emulator",
     "aosp_emulator_phase2",
