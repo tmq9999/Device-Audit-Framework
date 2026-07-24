@@ -33,6 +33,8 @@ jobs:
         run: ruff check .
       - name: Compile Python sources
         run: python -m compileall -q device_audit device_audit.py
+      - name: Check diff whitespace
+        run: git diff --check
 
   package:
     name: Build and smoke-test package
@@ -56,6 +58,7 @@ jobs:
           tar -tzf dist/*.tar.gz | grep -q '/docs/ARCHITECTURE.md$'
           tar -tzf dist/*.tar.gz | grep -q '/profiles/pixel_10_pro_cp1a.json$'
           tar -tzf dist/*.tar.gz | grep -q '/tests/fixtures/bundles/schema_1_0/evidence.json$'
+          tar -tzf dist/*.tar.gz | grep -q '/tests/fixtures/bundles/schema_4_0/evidence.json$'
       - name: Create isolated install
         run: python -m venv .package-venv && .package-venv/bin/python -m pip install dist/*.whl
       - name: Verify console entry point

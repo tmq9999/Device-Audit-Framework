@@ -1,5 +1,21 @@
 # Changelog
 
+## Unreleased — Phase 4
+
+- Add read-only `audio`, `battery`, `thermal`, and `storage` collectors through
+  the stable Collector API without changing the package version.
+- Introduce additive evidence bundle schema `4.0` while preserving offline
+  replay and digest verification for schemas `1.0`, `2.0`, and `3.0`.
+- Add bounded audio route/service metadata, battery and charging state,
+  thermal/power state, and storage mount/volume/filesystem summaries.
+- Add `--skip-audio`, `--skip-battery`, `--skip-thermal`, and `--skip-storage`.
+- Add explicit opt-in profile references and mismatch rules for each Phase 4
+  section; omitted or incomplete evidence remains inventory-only.
+- Add eight synthetic Phase 4 fixture families and a committed schema `4.0`
+  replay bundle, increasing the locked corpus to 440 files.
+- Preserve read-only collection: no playback, recording, power mutation,
+  thermal stress, storage writes, benchmarks, or second full `getprop`.
+
 ## 0.10.0 RC 1 — tag `v0.10.0-rc.1`
 
 - Add bounded, read-only camera inventory without opening devices or capturing

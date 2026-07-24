@@ -1,0 +1,9 @@
+nodev sysfs
+nodev proc
+nodev tmpfs
+	ext4
+	f2fs
+	erofs
+nodev cgroup
+nodev cgroup2
+nodev binder

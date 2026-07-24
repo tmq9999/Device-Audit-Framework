@@ -121,6 +121,10 @@ def _add_capture_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--skip-camera", action="store_true", help="Skip camera-service inventory")
     parser.add_argument("--skip-sensors", action="store_true", help="Skip sensorservice inventory")
     parser.add_argument("--skip-hal", action="store_true", help="Skip HAL and native-service inventory")
+    parser.add_argument("--skip-audio", action="store_true", help="Skip metadata-only audio inventory")
+    parser.add_argument("--skip-battery", action="store_true", help="Skip battery and charging inventory")
+    parser.add_argument("--skip-thermal", action="store_true", help="Skip thermal and power inventory")
+    parser.add_argument("--skip-storage", action="store_true", help="Skip read-only storage inventory")
     parser.add_argument(
         "--package",
         action="append",
@@ -160,5 +164,9 @@ def _capture_options(namespace: argparse.Namespace) -> CaptureOptions:
         skip_camera=namespace.skip_camera,
         skip_sensors=namespace.skip_sensors,
         skip_hal=namespace.skip_hal,
+        skip_audio=namespace.skip_audio,
+        skip_battery=namespace.skip_battery,
+        skip_thermal=namespace.skip_thermal,
+        skip_storage=namespace.skip_storage,
         packages=tuple(namespace.package),
     )

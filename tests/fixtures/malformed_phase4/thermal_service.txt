@@ -1,0 +1,3 @@
+Thermal service status: available
+Sensor: name: strange type: VENDOR temperature: ??
+Cooling device: malformed

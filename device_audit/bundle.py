@@ -79,7 +79,7 @@ def write_evidence_bundle(
         "commands_jsonl_sha256": sha256_text(commands_jsonl),
         "audit_log_sha256": sha256_text(audit_log),
     }
-    if schema_version in {"2.0", "3.0"}:
+    if schema_version in {"2.0", "3.0", "4.0"}:
         default_states = {
             "display": "not_evaluated",
             "telephony": "not_evaluated",
@@ -87,12 +87,21 @@ def write_evidence_bundle(
             "magisk": "not_evaluated",
             "runtime_markers": "not_evaluated",
         }
-        if schema_version == "3.0":
+        if schema_version in {"3.0", "4.0"}:
             default_states.update(
                 {
                     "camera": "not_evaluated",
                     "sensors": "not_evaluated",
                     "hal": "not_evaluated",
+                }
+            )
+        if schema_version == "4.0":
+            default_states.update(
+                {
+                    "audio": "not_evaluated",
+                    "battery": "not_evaluated",
+                    "thermal": "not_evaluated",
+                    "storage": "not_evaluated",
                 }
             )
         manifest["collector_states"] = dict(collector_states or default_states)
@@ -113,7 +122,7 @@ def load_evidence_bundle(bundle_dir: Path) -> dict[str, Any]:
     except (OSError, json.JSONDecodeError) as error:
         raise BundleIntegrityError(f"unable to read evidence manifest: {error}") from error
     schema_version = manifest.get("schema_version")
-    if schema_version not in {"1.0", "2.0", "3.0"} or manifest.get("bundle_type") != "device-audit-evidence":
+    if schema_version not in {"1.0", "2.0", "3.0", "4.0"} or manifest.get("bundle_type") != "device-audit-evidence":
         raise BundleIntegrityError("unsupported evidence bundle schema")
     _validate_manifest_metadata(manifest)
     stored_digest = manifest.get("bundle_digest")
@@ -124,7 +133,7 @@ def load_evidence_bundle(bundle_dir: Path) -> dict[str, Any]:
         raise BundleIntegrityError("evidence manifest commands must be a list")
     for command in commands:
         _validate_command_entry(command)
-    if schema_version in {"2.0", "3.0"}:
+    if schema_version in {"2.0", "3.0", "4.0"}:
         _validate_collector_states(manifest.get("collector_states"), schema_version)
     _verify_metadata_artifact(bundle_dir, "commands.jsonl", manifest.get("commands_jsonl_sha256"))
     _verify_metadata_artifact(bundle_dir, "audit.log", manifest.get("audit_log_sha256"))
@@ -266,8 +275,10 @@ def _validate_collector_states(value: Any, schema_version: str) -> None:
     if not isinstance(value, dict):
         raise BundleIntegrityError("evidence manifest collector_states must be an object")
     expected_sections = {"display", "telephony", "packages", "magisk", "runtime_markers"}
-    if schema_version == "3.0":
+    if schema_version in {"3.0", "4.0"}:
         expected_sections.update({"camera", "sensors", "hal"})
+    if schema_version == "4.0":
+        expected_sections.update({"audio", "battery", "thermal", "storage"})
     if set(value) != expected_sections:
         raise BundleIntegrityError("evidence manifest collector_states is incomplete")
     valid_states = {

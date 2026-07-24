@@ -1,0 +1,4 @@
+2026-07-24T16:11:39+00:00 command=audio.dumpsys_audio status=observed exit_code=0 duration_ms=1 stdout_length=807 stderr_length=1 timeout=False
+2026-07-24T16:11:39+00:00 command=battery.dumpsys_battery status=observed exit_code=0 duration_ms=1 stdout_length=398 stderr_length=1 timeout=False
+2026-07-24T16:11:39+00:00 command=thermal.service status=observed exit_code=0 duration_ms=1 stdout_length=472 stderr_length=1 timeout=False
+2026-07-24T16:11:39+00:00 command=storage.df_k status=observed exit_code=0 duration_ms=1 stdout_length=187 stderr_length=1 timeout=False

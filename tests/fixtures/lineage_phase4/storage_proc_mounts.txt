@@ -1,0 +1,3 @@
+/dev/block/dm-0 /data f2fs rw,seclabel,relatime 0 0
+/dev/block/dm-1 /system erofs ro,seclabel,relatime 0 0
+overlay /product overlay ro,lowerdir=/product 0 0

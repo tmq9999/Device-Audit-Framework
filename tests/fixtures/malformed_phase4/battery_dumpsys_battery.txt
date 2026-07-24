@@ -1,0 +1,6 @@
+present: perhaps
+status: maybe
+health: ???
+level: noisy
+temperature: 25
+voltage: no-unit

@@ -1,0 +1,19 @@
+present: true
+status: DISCHARGING
+health: GOOD
+plugged: NONE
+level: 51
+scale: 100
+voltage: 4200 mV
+temperature: 250 tenths C
+current now: -250000 uA
+current average: -200000 uA
+charge counter: 3800000 uAh
+energy counter: 15000000000 nWh
+max charging current: 3000000 uA
+max charging voltage: 9000000 uV
+technology: Li-ion
+ac powered: false
+usb powered: false
+wireless powered: false
+dock powered: false

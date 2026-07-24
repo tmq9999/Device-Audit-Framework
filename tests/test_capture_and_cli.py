@@ -28,7 +28,10 @@ def result(
     )
 
 
-def test_capture_continues_after_one_collector_error_and_redacts_all_serials(monkeypatch, tmp_path) -> None:
+def test_capture_continues_after_one_collector_error_and_redacts_discovered_serials(
+    monkeypatch,
+    tmp_path,
+) -> None:
     target_serial = "target-serial-123"
     other_serial = "other-serial-456"
     calls: list[tuple[str, ...]] = []
@@ -67,19 +70,53 @@ def test_capture_continues_after_one_collector_error_and_redacts_all_serials(mon
 
     outcome = capture_evidence(
         adb_path=Path("adb.exe"),
+        requested_serial=None,
+        output_dir=tmp_path / "bundle",
+        timeout_seconds=20,
+    )
+
+    serialized_bundle = "".join(
+        path.read_text(encoding="utf-8")
+        for path in outcome.bundle_path.rglob("*")
+        if path.is_file()
+    )
+    assert outcome.collector_errors == 1
+    assert ("cat", "/proc/cpuinfo") in calls
+    assert target_serial not in serialized_bundle
+    assert other_serial not in serialized_bundle
+
+
+def test_capture_with_explicit_serial_does_not_discover_other_devices(monkeypatch, tmp_path) -> None:
+    target_serial = "target-serial-123"
+
+    def fail_if_discovery_runs(*args, **kwargs) -> CommandResult:
+        raise AssertionError("explicit serial capture must not call adb devices -l")
+
+    monkeypatch.setattr(capture_module, "list_devices", fail_if_discovery_runs)
+
+    class FakeClient:
+        def __init__(self, adb_path: Path, serial: str, timeout_seconds: int) -> None:
+            assert serial == target_serial
+
+        def get_state(self) -> CommandResult:
+            return result(("adb", "-s", target_serial, "get-state"), "device\n")
+
+        def shell(self, arguments, timeout_seconds=None) -> CommandResult:
+            command = ("adb", "-s", target_serial, "shell", *tuple(arguments))
+            return result(command, "ok\n")
+
+    monkeypatch.setattr(capture_module, "ADBClient", FakeClient)
+
+    outcome = capture_evidence(
+        adb_path=Path("adb.exe"),
         requested_serial=target_serial,
         output_dir=tmp_path / "bundle",
         timeout_seconds=20,
     )
 
-    manifest_text = (outcome.bundle_path / "evidence.json").read_text(encoding="utf-8")
-    devices_raw = (outcome.bundle_path / "raw" / "transport_devices.stdout.txt").read_text(
-        encoding="utf-8"
-    )
-    assert outcome.collector_errors == 1
-    assert ("cat", "/proc/cpuinfo") in calls
-    assert target_serial not in manifest_text + devices_raw
-    assert other_serial not in manifest_text + devices_raw
+    manifest = json.loads((outcome.bundle_path / "evidence.json").read_text(encoding="utf-8"))
+    assert [command["id"] for command in manifest["commands"]].count("transport.state") == 1
+    assert all(command["id"] != "transport.devices" for command in manifest["commands"])
 
 
 def test_default_cli_invocation_runs_composed_audit(monkeypatch, tmp_path) -> None:

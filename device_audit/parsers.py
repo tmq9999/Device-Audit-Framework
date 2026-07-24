@@ -7,12 +7,17 @@ from collections.abc import Iterable, Mapping
 import re
 
 from device_audit.models import (
-    CpuCluster,
-    CpuTopology,
+    AudioDevice,
+    AudioInventory,
+    BatteryInventory,
     CameraDevice,
     CameraInventory,
+    CoolingDevice,
+    CpuCluster,
+    CpuTopology,
     DisplayInfo,
     DisplayMode,
+    FilesystemSupport,
     HalInterface,
     HalInventory,
     KernelInfo,
@@ -21,7 +26,13 @@ from device_audit.models import (
     RuntimeMarkers,
     SensorDevice,
     SensorInventory,
+    StorageInventory,
+    StorageMount,
+    StoragePartition,
+    StorageVolume,
     TelephonyInfo,
+    ThermalInventory,
+    ThermalSensor,
 )
 
 _GETPROP_PATTERN = re.compile(r"^\[([^]]+)\]: \[(.*)]$")
@@ -1060,7 +1071,724 @@ def _first_integer(text: str, pattern: str) -> int | None:
 
 def _first_bool(text: str, pattern: str) -> bool | None:
     match = re.search(pattern, text)
-    return match.group(1).lower() == "true" if match else None
+    return match.group(1).lower() in {"true", "1", "yes", "on"} if match else None
 
 def _natural_sort_key(value: str) -> tuple[object, ...]:
     return tuple(int(part) if part.isdigit() else part for part in re.split(r"(\d+)", value))
+
+
+_MAX_SYSTEM_SUMMARY = 32
+_AUDIO_DIRECTION_VALUES = {"INPUT", "OUTPUT", "BIDIRECTIONAL", "UNKNOWN"}
+_AUDIO_ROLE_VALUES = {"SOURCE", "SINK", "UNKNOWN"}
+_BATTERY_STATUS_VALUES = {"UNKNOWN", "CHARGING", "DISCHARGING", "NOT_CHARGING", "FULL"}
+_BATTERY_HEALTH_VALUES = {
+    "UNKNOWN",
+    "GOOD",
+    "OVERHEAT",
+    "DEAD",
+    "OVER_VOLTAGE",
+    "UNSPECIFIED_FAILURE",
+    "COLD",
+}
+_THERMAL_SEVERITIES = {
+    "NONE",
+    "LIGHT",
+    "MODERATE",
+    "SEVERE",
+    "CRITICAL",
+    "EMERGENCY",
+    "SHUTDOWN",
+    "UNKNOWN",
+}
+_THERMAL_SENSOR_TYPES = {
+    "CPU",
+    "GPU",
+    "BATTERY",
+    "SKIN",
+    "USB_PORT",
+    "POWER_AMPLIFIER",
+    "BCL_VOLTAGE",
+    "BCL_CURRENT",
+    "BCL_PERCENTAGE",
+    "NPU",
+    "MODEM",
+    "SOC",
+    "AMBIENT",
+    "UNKNOWN",
+}
+_WAKEFULNESS_VALUES = {"AWAKE", "ASLEEP", "DREAMING", "DOZING", "UNKNOWN"}
+_VOLUME_TYPES = {"PUBLIC", "PRIVATE", "EMULATED", "STUB", "ASEC", "OBB", "UNKNOWN"}
+_VOLUME_STATES = {
+    "UNMOUNTED",
+    "CHECKING",
+    "MOUNTED",
+    "MOUNTED_READ_ONLY",
+    "FORMATTING",
+    "EJECTING",
+    "UNMOUNTABLE",
+    "REMOVED",
+    "BAD_REMOVAL",
+    "UNKNOWN",
+}
+
+
+def parse_audio_info(
+    audio_text: str,
+    flinger_text: str = "",
+    policy_text: str = "",
+    ports_text: str = "",
+    patches_text: str = "",
+) -> AudioInventory:
+    """Parse bounded audio metadata without controlling media or routes."""
+
+    combined = "\n".join((audio_text, flinger_text, policy_text, ports_text, patches_text))
+    warnings: list[str] = []
+    devices = _parse_audio_devices("\n".join((audio_text, policy_text, ports_text)), warnings)
+    outputs = tuple(device for device in devices if device.direction in {"OUTPUT", "BIDIRECTIONAL"})
+    inputs = tuple(device for device in devices if device.direction in {"INPUT", "BIDIRECTIONAL"})
+    if combined.strip() and not devices and "audio" in combined.lower():
+        warnings.append("no audio devices or ports parsed")
+    if len(outputs) > _MAX_SYSTEM_SUMMARY or len(inputs) > _MAX_SYSTEM_SUMMARY:
+        warnings.append(f"audio device summary truncated to {_MAX_SYSTEM_SUMMARY} items")
+    return AudioInventory(
+        service_status=_service_status(audio_text, "audio"),
+        audio_server_status=_labeled_status(combined, "audio server"),
+        audio_policy_status=_labeled_status(policy_text or audio_text, "audio policy"),
+        current_mode=_bounded_text(_first_match(combined, r"(?im)^\s*(?:mode|audio mode)\s*[:=]\s*([^\r\n]+)")),
+        master_muted=_first_bool(combined, r"(?im)^\s*(?:master mute|master_muted)\s*[:=]\s*(true|false|1|0)"),
+        microphone_muted=_first_bool(combined, r"(?im)^\s*(?:mic(?:rophone)? mute|microphone_muted)\s*[:=]\s*(true|false|1|0)"),
+        fixed_volume=_first_bool(combined, r"(?im)^\s*(?:fixed volume|fixed_volume)\s*[:=]\s*(true|false|1|0)"),
+        communication_device=_bounded_text(_first_match(combined, r"(?im)^\s*(?:communication device|communication_device)\s*[:=]\s*([^\r\n]+)")),
+        output_devices=outputs[:_MAX_SYSTEM_SUMMARY],
+        input_devices=inputs[:_MAX_SYSTEM_SUMMARY],
+        output_thread_count=_count_or_labeled(combined, "output threads"),
+        input_thread_count=_count_or_labeled(combined, "input threads"),
+        active_playback_client_count=_count_or_labeled(combined, "active playback clients"),
+        active_recording_client_count=_count_or_labeled(combined, "active recording clients"),
+        audio_focus_owner_count=_count_or_labeled(combined, "audio focus owners"),
+        active_patch_count=_count_or_labeled(patches_text or combined, "(?:active )?audio patches"),
+        effect_count=_count_or_labeled(flinger_text or combined, "(?:audio )?effects"),
+        parse_warnings=_bounded_warnings(warnings),
+    )
+
+
+def parse_battery_info(
+    battery_text: str,
+    properties_text: str = "",
+    command_values: Mapping[str, str] | None = None,
+) -> BatteryInventory:
+    """Parse battery values only when labels identify their source units."""
+
+    command_values = command_values or {}
+    combined = "\n".join((battery_text, properties_text))
+    warnings: list[str] = []
+    values = _battery_labeled_values(combined)
+    for key, text in sorted(command_values.items()):
+        value = text.strip()
+        if not value:
+            continue
+        previous = values.get(key)
+        if previous is not None and previous != value:
+            warnings.append(f"conflicting battery value for {key}; dumpsys value retained")
+            continue
+        values.setdefault(key, value)
+    level = _integer_value(values.get("level"))
+    scale = _integer_value(values.get("scale"))
+    level_percent = None
+    if level is not None and scale is not None and scale > 0:
+        level_percent = round(level * 100 / scale)
+    elif level is not None and 0 <= level <= 100 and "level" in values:
+        level_percent = level
+    elif values.get("level"):
+        warnings.append("battery level lacks usable scale")
+    temperature_tenths = _temperature_tenths(values.get("temperature"), warnings)
+    battery_status = _normalize_battery_status(values.get("status"))
+    charging_value = _bool_value(values.get("charging"))
+    if charging_value is None and battery_status in {"CHARGING", "DISCHARGING", "NOT_CHARGING", "FULL"}:
+        charging_value = battery_status == "CHARGING"
+    return BatteryInventory(
+        battery_present=_bool_value(values.get("present")),
+        battery_status=battery_status,
+        battery_health=_normalize_battery_health(values.get("health")),
+        plugged_source=_normalize_plugged(values.get("plugged"), values),
+        charging=charging_value,
+        level_percent=level_percent,
+        scale=scale,
+        voltage_mv=_unit_integer(values.get("voltage"), ("mv", "millivolt"), warnings, "voltage"),
+        temperature_tenths_c=temperature_tenths,
+        temperature_c=temperature_tenths / 10 if temperature_tenths is not None else None,
+        current_now_ua=_unit_integer(values.get("current now"), ("ua", "microamp"), warnings, "current now"),
+        current_average_ua=_unit_integer(values.get("current average"), ("ua", "microamp"), warnings, "current average"),
+        charge_counter_uah=_unit_integer(values.get("charge counter"), ("uah", "microamp-hour"), warnings, "charge counter"),
+        energy_counter_nwh=_unit_integer(values.get("energy counter"), ("nwh", "nanowatt-hour"), warnings, "energy counter"),
+        max_charging_current_ua=_unit_integer(values.get("max charging current"), ("ua", "microamp"), warnings, "max charging current"),
+        max_charging_voltage_uv=_unit_integer(values.get("max charging voltage"), ("uv", "microvolt"), warnings, "max charging voltage"),
+        technology=_bounded_text(values.get("technology")),
+        property_service_status=_service_status(properties_text, "battery"),
+        parse_warnings=_bounded_warnings(warnings),
+    )
+
+
+def parse_thermal_info(
+    thermal_text: str,
+    power_text: str = "",
+    idle_text: str = "",
+    thermal_command_text: str = "",
+    power_mode_text: str = "",
+    fixed_performance_text: str = "",
+) -> ThermalInventory:
+    """Parse current thermal and power observations without performance conclusions."""
+
+    combined_thermal = "\n".join((thermal_text, thermal_command_text))
+    combined_power = "\n".join((power_text, idle_text, power_mode_text, fixed_performance_text))
+    warnings: list[str] = []
+    sensors = _parse_thermal_sensors(combined_thermal, warnings)
+    cooling = _parse_cooling_devices(combined_thermal, warnings)
+    if len(sensors) > _MAX_SYSTEM_SUMMARY or len(cooling) > _MAX_SYSTEM_SUMMARY:
+        warnings.append(f"thermal summary truncated to {_MAX_SYSTEM_SUMMARY} items")
+    return ThermalInventory(
+        thermal_service_status=_service_status(combined_thermal, "thermal"),
+        thermal_hal_status=_labeled_status(combined_thermal, "thermal hal"),
+        current_thermal_severity=_normalize_severity(
+            _first_match(combined_thermal, r"(?im)^\s*(?:current )?(?:thermal )?severity\s*[:=]\s*([^\r\n]+)")
+        ),
+        temperature_sensors=tuple(sensors[:_MAX_SYSTEM_SUMMARY]),
+        cooling_devices=tuple(cooling[:_MAX_SYSTEM_SUMMARY]),
+        power_service_status=_service_status(power_text, "power"),
+        wakefulness=_normalize_wakefulness(_first_match(combined_power, r"(?im)^\s*wakefulness\s*[:=]\s*([^\r\n]+)")),
+        interactive=_first_bool(combined_power, r"(?im)^\s*interactive\s*[:=]\s*(true|false|1|0)"),
+        battery_saver_enabled=_first_bool(combined_power, r"(?im)^\s*(?:battery saver|battery_saver_enabled)\s*[:=]\s*(true|false|1|0)"),
+        adaptive_power_saver_enabled=_first_bool(combined_power, r"(?im)^\s*(?:adaptive power saver|adaptive_power_saver_enabled)\s*[:=]\s*(true|false|1|0)"),
+        fixed_performance_mode_enabled=_first_bool(combined_power, r"(?im)^\s*(?:fixed performance mode(?: enabled)?|fixed_performance_mode_enabled)\s*[:=]\s*(true|false|1|0)"),
+        current_power_mode=_first_match(power_mode_text or combined_power, r"(?im)^\s*(?:mode|power mode)\s*[:=]?\s*([^\r\n]+)") or None,
+        device_idle_mode=_first_bool(combined_power, r"(?im)^\s*(?:device )?idle mode\s*[:=]\s*(true|false|1|0)"),
+        light_idle_mode=_first_bool(combined_power, r"(?im)^\s*light idle mode\s*[:=]\s*(true|false|1|0)"),
+        active_wake_lock_count=_count_or_labeled(combined_power, "active wake ?locks"),
+        suspend_blocker_count=_count_or_labeled(combined_power, "suspend blockers"),
+        last_wake_reason=_bounded_text(_first_match(combined_power, r"(?im)^\s*last wake reason\s*[:=]\s*([^\r\n]+)")),
+        last_sleep_reason=_bounded_text(_first_match(combined_power, r"(?im)^\s*last sleep reason\s*[:=]\s*([^\r\n]+)")),
+        parse_warnings=_bounded_warnings(warnings),
+    )
+
+
+def parse_storage_info(
+    df_text: str,
+    mount_text: str = "",
+    proc_mounts_text: str = "",
+    filesystems_text: str = "",
+    partitions_text: str = "",
+    mount_service_text: str = "",
+    volumes_text: str = "",
+    disks_text: str = "",
+    primary_uuid_text: str = "",
+    properties: Mapping[str, str] | None = None,
+) -> StorageInventory:
+    """Parse a bounded read-only storage inventory without inferring device health."""
+
+    warnings: list[str] = []
+    mounts = _merge_mounts(
+        _parse_df_mounts(df_text, warnings),
+        _parse_mount_lines(mount_text, "storage.mount", warnings),
+        _parse_mount_lines(proc_mounts_text, "storage.proc_mounts", warnings),
+    )
+    volumes = _parse_storage_volumes(volumes_text, warnings)
+    filesystems = _parse_filesystems(filesystems_text)
+    partitions = _parse_partitions(partitions_text, warnings)
+    if len(mounts) > _MAX_SYSTEM_SUMMARY or len(volumes) > _MAX_SYSTEM_SUMMARY:
+        warnings.append(f"storage summary truncated to {_MAX_SYSTEM_SUMMARY} items")
+    props = properties or {}
+    return StorageInventory(
+        mounts=tuple(mounts[:_MAX_SYSTEM_SUMMARY]),
+        volumes=tuple(volumes[:_MAX_SYSTEM_SUMMARY]),
+        disk_count=_storage_disk_count(disks_text),
+        partitions=tuple(partitions[:_MAX_SYSTEM_SUMMARY]),
+        supported_filesystems=tuple(filesystems[:_MAX_SYSTEM_SUMMARY]),
+        primary_storage_uuid_state=_primary_uuid_state(primary_uuid_text),
+        mount_service_status=_service_status(mount_service_text, "mount"),
+        encryption_state=_first_storage_property(props, ("ro.crypto.state", "ro.crypto.type")),
+        metadata_encryption_state=_first_storage_property(
+            props,
+            ("ro.crypto.metadata.enabled", "ro.crypto.metadata.encryption"),
+        ),
+        parse_warnings=_bounded_warnings(warnings),
+    )
+
+
+def _parse_audio_devices(text: str, warnings: list[str]) -> tuple[AudioDevice, ...]:
+    blocks = re.split(r"(?im)^\s*(?=(?:audio )?(?:device|port)\s*(?:id)?\s*[:=])", text)
+    devices: list[AudioDevice] = []
+    for block in blocks:
+        identifier = _first_match(block, r"(?im)^\s*(?:audio )?(?:device|port)\s*(?:id)?\s*[:=]\s*([^\s,]+)")
+        if not identifier:
+            continue
+        device_type = _first_match(block, r"(?im)^\s*(?:type|device type)\s*[:=]\s*([^\r\n,]+)")
+        direction = _normalize_audio_direction(
+            _first_match(block, r"(?im)^\s*(?:direction|io)\s*[:=]\s*([^\r\n,]+)")
+            or device_type
+        )
+        role = _normalize_audio_role(_first_match(block, r"(?im)^\s*role\s*[:=]\s*([^\r\n,]+)"))
+        if direction == "UNKNOWN" and device_type:
+            warnings.append(f"unknown audio direction for {identifier}")
+        devices.append(
+            AudioDevice(
+                id=_bounded_text(identifier, 80) or "unknown",
+                role=role,
+                direction=direction,
+                device_type=_bounded_text(device_type.strip() if device_type else None, 128),
+                address=_bounded_text(_first_match(block, r"(?im)^\s*address\s*[:=]\s*([^\r\n]+)")),
+                product_name=_bounded_text(_first_match(block, r"(?im)^\s*(?:name|product name)\s*[:=]\s*([^\r\n]+)")),
+                connected=_first_bool(block, r"(?im)^\s*connected\s*[:=]\s*(true|false|1|0)"),
+                active=_first_bool(block, r"(?im)^\s*active\s*[:=]\s*(true|false|1|0)"),
+                formats=_token_values(block, "formats?"),
+                sample_rates=_integer_tokens(_token_values(block, "sample ?rates?")),
+                channel_masks=_token_values(block, "channel masks?"),
+                flags=_token_values(block, "flags?"),
+                source="audio",
+            )
+        )
+    return tuple(sorted(devices, key=lambda item: _natural_sort_key(item.id)))
+
+
+def _battery_labeled_values(text: str) -> dict[str, str]:
+    aliases = {
+        "present": "present",
+        "status": "status",
+        "health": "health",
+        "plugged": "plugged",
+        "level": "level",
+        "scale": "scale",
+        "voltage": "voltage",
+        "temperature": "temperature",
+        "current now": "current now",
+        "current average": "current average",
+        "charge counter": "charge counter",
+        "energy counter": "energy counter",
+        "max charging current": "max charging current",
+        "max charging voltage": "max charging voltage",
+        "technology": "technology",
+        "charging": "charging",
+        "ac powered": "ac powered",
+        "usb powered": "usb powered",
+        "wireless powered": "wireless powered",
+        "dock powered": "dock powered",
+    }
+    values: dict[str, str] = {}
+    for line in text.splitlines():
+        match = re.match(r"^\s*([^:=]+?)\s*[:=]\s*(.*?)\s*$", line)
+        if not match:
+            continue
+        label = re.sub(r"\s+", " ", match.group(1).strip().lower())
+        if label in aliases and match.group(2):
+            values[aliases[label]] = match.group(2).strip()
+    return values
+
+
+def _parse_thermal_sensors(text: str, warnings: list[str]) -> list[ThermalSensor]:
+    sensors: list[ThermalSensor] = []
+    for line in text.splitlines():
+        if "temperature" not in line.lower() and "sensor" not in line.lower():
+            continue
+        name = _inline_field(line, "name", "type|temperature|temp|severity|throttl(?:ing|ed)|hot thresholds?|cold thresholds?") or _inline_field(line, "sensor", "type|temperature|temp|severity|throttl(?:ing|ed)|hot thresholds?|cold thresholds?")
+        type_value = _inline_field(line, "type", "temperature|temp|severity|throttl(?:ing|ed)|hot thresholds?|cold thresholds?")
+        temperature = _float_match(line, r"(?i)(?:temperature|temp)\s*[:=]\s*(-?\d+(?:\.\d+)?)\s*(?:°?c|celsius)?")
+        if not name and temperature is None:
+            continue
+        if temperature is None and "temperature" in line.lower():
+            warnings.append("malformed thermal temperature")
+        severity = _normalize_severity(_inline_field(line, "severity", "throttl(?:ing|ed)|hot thresholds?|cold thresholds?")) or "UNKNOWN"
+        sensors.append(
+            ThermalSensor(
+                name=_bounded_text((name or type_value or "unknown").strip()) or "unknown",
+                type=_normalize_thermal_type(type_value or name),
+                temperature_c=temperature,
+                severity=severity,
+                throttling=_first_bool(line, r"(?i)throttl(?:ing|ed)\s*[:=]\s*(true|false|1|0)"),
+                hot_thresholds_c=_float_tokens(_inline_field(line, "hot thresholds?", "cold thresholds?") or ""),
+                cold_thresholds_c=_float_tokens(_inline_field(line, "cold thresholds?", "") or ""),
+                source="thermalservice",
+            )
+        )
+    return sorted(sensors, key=lambda item: (item.type, item.name))
+
+
+def _parse_cooling_devices(text: str, warnings: list[str]) -> list[CoolingDevice]:
+    devices: list[CoolingDevice] = []
+    for line in text.splitlines():
+        if "cooling" not in line.lower():
+            continue
+        name = _inline_field(line, "name", "type|current(?: value)?|max(?:imum)?(?: value)?") or _inline_field(line, "cooling device", "type|current(?: value)?|max(?:imum)?(?: value)?")
+        current = _integer_match(line, r"(?i)(?:current(?: value)?)\s*[:=]\s*(-?\d+)")
+        maximum = _integer_match(line, r"(?i)(?:max(?:imum)?(?: value)?)\s*[:=]\s*(-?\d+)")
+        if not name and current is None and maximum is None:
+            warnings.append("malformed cooling-device entry")
+            continue
+        devices.append(
+            CoolingDevice(
+                name=_bounded_text((name or "unknown").strip()) or "unknown",
+                type=_bounded_text((_inline_field(line, "type", "current(?: value)?|max(?:imum)?(?: value)?") or "UNKNOWN").strip(), 80) or "UNKNOWN",
+                current_value=current,
+                max_value=maximum,
+                source="thermalservice",
+            )
+        )
+    return sorted(devices, key=lambda item: (item.type, item.name))
+
+
+def _parse_df_mounts(text: str, warnings: list[str]) -> list[StorageMount]:
+    mounts: list[StorageMount] = []
+    for line in text.splitlines():
+        parts = line.split()
+        if len(parts) < 6 or parts[0].lower() == "filesystem":
+            continue
+        try:
+            total, used, available = (int(parts[index]) for index in (1, 2, 3))
+        except ValueError:
+            warnings.append("malformed df capacity row")
+            continue
+        percent_match = re.fullmatch(r"(\d+)%", parts[4])
+        mounts.append(
+            StorageMount(
+                source=_bounded_text(parts[0], 256),
+                target=_bounded_text(" ".join(parts[5:]), 256) or "<unknown>",
+                filesystem=None,
+                read_only=None,
+                options=(),
+                total_kb=total,
+                used_kb=used,
+                available_kb=available,
+                usage_percent=int(percent_match.group(1)) if percent_match else None,
+                virtual=parts[0] in {"tmpfs", "proc", "sysfs"},
+                bind=False,
+                overlay=False,
+                source_command="storage.df_k",
+            )
+        )
+    return mounts
+
+
+def _parse_mount_lines(text: str, source_command: str, warnings: list[str]) -> list[StorageMount]:
+    mounts: list[StorageMount] = []
+    pattern = re.compile(r"^\s*(\S+)\s+on\s+(.+?)\s+type\s+(\S+)\s+\(([^)]*)\)")
+    proc_pattern = re.compile(r"^\s*(\S+)\s+(\S+)\s+(\S+)\s+(\S+)")
+    for line in text.splitlines():
+        match = pattern.match(line) or proc_pattern.match(line)
+        if not match:
+            continue
+        source, target, filesystem, options_text = match.groups()
+        options = tuple(sorted({_bounded_text(value, 96) or "" for value in options_text.split(",") if value}))[:_MAX_SYSTEM_SUMMARY]
+        mounts.append(
+            StorageMount(
+                source=_bounded_text(source, 256),
+                target=_bounded_text(target, 256) or "<unknown>",
+                filesystem=_bounded_text(filesystem, 80),
+                read_only=True if "ro" in options else False if "rw" in options else None,
+                options=options,
+                total_kb=None,
+                used_kb=None,
+                available_kb=None,
+                usage_percent=None,
+                virtual=filesystem in {"tmpfs", "proc", "sysfs", "cgroup", "cgroup2", "binder"},
+                bind="bind" in options,
+                overlay=filesystem == "overlay",
+                source_command=source_command,
+            )
+        )
+    if text.strip() and not mounts and (" on " in text or "/" in text):
+        warnings.append("no mount rows parsed")
+    return mounts
+
+
+def _merge_mounts(*collections: list[StorageMount]) -> list[StorageMount]:
+    merged: dict[str, StorageMount] = {}
+    for collection in collections:
+        for mount in collection:
+            existing = merged.get(mount.target)
+            if existing is None or (existing.filesystem is None and mount.filesystem is not None):
+                if existing is not None:
+                    mount = StorageMount(
+                        source=mount.source or existing.source,
+                        target=mount.target,
+                        filesystem=mount.filesystem,
+                        read_only=mount.read_only,
+                        options=mount.options,
+                        total_kb=existing.total_kb,
+                        used_kb=existing.used_kb,
+                        available_kb=existing.available_kb,
+                        usage_percent=existing.usage_percent,
+                        virtual=mount.virtual,
+                        bind=mount.bind,
+                        overlay=mount.overlay,
+                        source_command=mount.source_command,
+                    )
+                merged[mount.target] = mount
+    return sorted(merged.values(), key=lambda item: item.target)
+
+
+def _parse_storage_volumes(text: str, warnings: list[str]) -> list[StorageVolume]:
+    volumes: list[StorageVolume] = []
+    for line in text.splitlines():
+        parts = line.split()
+        if not parts or parts[0].upper() not in _VOLUME_TYPES:
+            continue
+        volume_type = parts[0].upper()
+        identifier = parts[1] if len(parts) > 1 else None
+        state = next((part.upper() for part in parts if part.upper() in _VOLUME_STATES), "UNKNOWN")
+        uuid = next((part for part in parts if re.fullmatch(r"[0-9a-fA-F-]{8,}", part)), None)
+        disk = next((part for part in parts if part.startswith("disk:")), None)
+        volumes.append(
+            StorageVolume(
+                id=_bounded_text(identifier, 128),
+                type=volume_type,
+                state=state,
+                filesystem_uuid=_bounded_text(uuid, 128),
+                disk_id=_bounded_text(disk, 128),
+                primary="primary" in line.lower(),
+                emulated=volume_type == "EMULATED",
+                source="sm list-volumes all",
+            )
+        )
+    if text.strip() and not volumes and "volume" in text.lower():
+        warnings.append("no storage volumes parsed")
+    return sorted(volumes, key=lambda item: (item.type, item.id or ""))
+
+
+def _parse_filesystems(text: str) -> list[FilesystemSupport]:
+    filesystems: list[FilesystemSupport] = []
+    for line in text.splitlines():
+        parts = line.split()
+        if not parts:
+            continue
+        nodev = parts[0] == "nodev"
+        name = parts[-1]
+        if name:
+            filesystems.append(FilesystemSupport(name=_bounded_text(name, 80) or "unknown", nodev=nodev))
+    return sorted({item.name: item for item in filesystems}.values(), key=lambda item: item.name)
+
+
+def _parse_partitions(text: str, warnings: list[str]) -> list[StoragePartition]:
+    partitions: list[StoragePartition] = []
+    for line in text.splitlines():
+        match = re.match(r"^\s*(\d+)\s+(\d+)\s+(\d+)\s+(\S+)\s*$", line)
+        if not match:
+            continue
+        partitions.append(
+            StoragePartition(
+                major=int(match.group(1)),
+                minor=int(match.group(2)),
+                blocks=int(match.group(3)),
+                name=match.group(4),
+            )
+        )
+    if text.strip() and "major" in text.lower() and not partitions:
+        warnings.append("no partitions parsed")
+    return sorted(partitions, key=lambda item: (item.major, item.minor, item.name))
+
+
+def _normalize_audio_direction(value: str | None) -> str:
+    upper = (value or "").upper()
+    if "BIDIRECTION" in upper:
+        return "BIDIRECTIONAL"
+    if "INPUT" in upper or "_IN_" in upper:
+        return "INPUT"
+    if "OUTPUT" in upper or "_OUT_" in upper:
+        return "OUTPUT"
+    return "UNKNOWN"
+
+
+def _normalize_audio_role(value: str | None) -> str:
+    upper = (value or "").upper()
+    if "SOURCE" in upper:
+        return "SOURCE"
+    if "SINK" in upper:
+        return "SINK"
+    return "UNKNOWN"
+
+
+def _normalize_battery_status(value: str | None) -> str | None:
+    if value is None:
+        return None
+    normalized = re.sub(r"[^A-Z]", "_", value.upper()).strip("_")
+    aliases = {"NOTCHARGING": "NOT_CHARGING", "NOT_CHARGING": "NOT_CHARGING", "5": "FULL", "4": "NOT_CHARGING", "3": "DISCHARGING", "2": "CHARGING", "1": "UNKNOWN"}
+    normalized = aliases.get(normalized, normalized)
+    return normalized if normalized in _BATTERY_STATUS_VALUES else "UNKNOWN"
+
+
+def _normalize_battery_health(value: str | None) -> str | None:
+    if value is None:
+        return None
+    normalized = re.sub(r"[^A-Z]", "_", value.upper()).strip("_")
+    aliases = {"OVER_VOLTAGE": "OVER_VOLTAGE", "UNSPECIFIED_FAILURE": "UNSPECIFIED_FAILURE", "1": "UNKNOWN", "2": "GOOD", "3": "OVERHEAT", "4": "DEAD", "5": "OVER_VOLTAGE", "6": "UNSPECIFIED_FAILURE", "7": "COLD"}
+    return aliases.get(normalized, normalized if normalized in _BATTERY_HEALTH_VALUES else "UNKNOWN")
+
+
+def _normalize_plugged(value: str | None, values: Mapping[str, str]) -> str | None:
+    flags = [name for name in ("ac", "usb", "wireless", "dock") if _bool_value(values.get(f"{name} powered"))]
+    if flags:
+        return "MULTIPLE" if len(flags) > 1 else flags[0].upper()
+    if value is None:
+        return None
+    normalized = value.upper().replace(" ", "_")
+    if normalized.isdigit():
+        code = int(normalized)
+        mapping = {0: "NONE", 1: "AC", 2: "USB", 4: "WIRELESS", 8: "DOCK"}
+        if code in mapping:
+            return mapping[code]
+        return "MULTIPLE" if code > 0 and code & (code - 1) else "UNKNOWN"
+    matches = [name for name in ("AC", "USB", "WIRELESS", "DOCK") if name in normalized]
+    if not matches:
+        return "NONE" if "NONE" in normalized or "UNPLUGGED" in normalized else "UNKNOWN"
+    return matches[0] if len(matches) == 1 else "MULTIPLE"
+
+
+def _normalize_thermal_type(value: str | None) -> str:
+    upper = (value or "").upper().replace("-", "_").replace(" ", "_")
+    aliases = {"USB": "USB_PORT", "PA": "POWER_AMPLIFIER", "BCLVOLTAGE": "BCL_VOLTAGE", "BCLCURRENT": "BCL_CURRENT", "BCLPERCENTAGE": "BCL_PERCENTAGE"}
+    normalized = aliases.get(upper.replace("_", ""), upper)
+    return normalized if normalized in _THERMAL_SENSOR_TYPES else "UNKNOWN"
+
+
+def _normalize_severity(value: str | None) -> str | None:
+    if value is None:
+        return None
+    normalized = re.sub(r"[^A-Z]", "_", value.upper()).strip("_")
+    return normalized if normalized in _THERMAL_SEVERITIES else "UNKNOWN"
+
+
+def _normalize_wakefulness(value: str | None) -> str | None:
+    if value is None:
+        return None
+    normalized = re.sub(r"[^A-Z]", "_", value.upper()).strip("_")
+    return normalized if normalized in _WAKEFULNESS_VALUES else "UNKNOWN"
+
+
+def _labeled_status(text: str, label: str) -> str | None:
+    value = _first_match(text, rf"(?im)^\s*{label}\s*(?:status)?\s*[:=]\s*([^\r\n]+)")
+    if value is None:
+        return None
+    return "unavailable" if any(token in value.lower() for token in ("unavailable", "not found", "denied")) else "available"
+
+
+def _service_status(text: str, keyword: str) -> str | None:
+    if not text.strip():
+        return None
+    lower = text.lower()
+    if any(marker in lower for marker in ("permission denied", "permission denial", "not found", "can't find service", "unknown command")):
+        return "unavailable"
+    return "available" if keyword.lower() in lower else "unknown"
+
+
+def _count_or_labeled(text: str, label: str) -> int | None:
+    return _integer_match(text, rf"(?im)^\s*(?:{label})\s*[:=]\s*(\d+)")
+
+
+def _token_values(text: str, label: str) -> tuple[str, ...]:
+    value = _first_match(text, rf"(?im)^\s*{label}\s*[:=]\s*([^\r\n]+)")
+    if value is None:
+        return ()
+    return tuple(sorted({_bounded_text(token.strip(), 96) or "" for token in re.split(r"[,| ]+", value) if token.strip()}))[:_MAX_SYSTEM_SUMMARY]
+
+
+def _integer_tokens(values: tuple[str, ...]) -> tuple[int, ...]:
+    return tuple(sorted({int(value) for value in values if value.isdigit()}))
+
+
+def _integer_value(value: str | None) -> int | None:
+    return int(value) if value and re.fullmatch(r"-?\d+", value.strip()) else None
+
+
+def _unit_integer(value: str | None, units: tuple[str, ...], warnings: list[str], field: str) -> int | None:
+    if value is None:
+        return None
+    match = re.fullmatch(r"\s*(-?\d+)\s*([A-Za-zµ_-]+)?\s*", value)
+    if not match:
+        warnings.append(f"malformed {field}")
+        return None
+    unit = (match.group(2) or "").lower().replace("µ", "u")
+    if unit not in units:
+        warnings.append(f"unknown units for {field}")
+        return None
+    return int(match.group(1))
+
+
+def _temperature_tenths(value: str | None, warnings: list[str]) -> int | None:
+    if value is None:
+        return None
+    match = re.fullmatch(r"\s*(-?\d+(?:\.\d+)?)\s*(tenths?(?:\s*of\s*(?:a\s*)?degree)?\s*c|deci(?:celsius)?|°?c)?\s*", value, re.IGNORECASE)
+    if not match:
+        warnings.append("malformed temperature")
+        return None
+    unit = (match.group(2) or "").lower()
+    if not unit:
+        warnings.append("unknown units for temperature")
+        return None
+    number = float(match.group(1))
+    if "tenths" in unit or "deci" in unit:
+        return round(number)
+    return round(number * 10)
+
+
+def _bool_value(value: str | None) -> bool | None:
+    if value is None:
+        return None
+    normalized = value.strip().lower()
+    if normalized in {"true", "1", "yes", "on"}:
+        return True
+    if normalized in {"false", "0", "no", "off"}:
+        return False
+    return None
+
+
+def _integer_match(text: str, pattern: str) -> int | None:
+    match = re.search(pattern, text)
+    return int(match.group(1)) if match else None
+
+
+def _float_match(text: str, pattern: str) -> float | None:
+    match = re.search(pattern, text)
+    return float(match.group(1)) if match else None
+
+
+def _float_tokens(text: str) -> tuple[float, ...]:
+    return tuple(sorted({float(value) for value in re.findall(r"-?\d+(?:\.\d+)?", text)}))[:_MAX_SYSTEM_SUMMARY]
+
+
+def _primary_uuid_state(text: str) -> str | None:
+    value = text.strip()
+    if not value:
+        return None
+    if value.lower() in {"null", "none", "primary_physical"}:
+        return value.lower()
+    return "present"
+
+
+def _storage_disk_count(text: str) -> int | None:
+    if not text.strip():
+        return None
+    labeled = _count_or_labeled(text, "disks")
+    if labeled is not None:
+        return labeled
+    lines = [line for line in text.splitlines() if line.strip() and not line.lower().startswith("error")]
+    return len(lines) or None
+
+
+def _first_storage_property(properties: Mapping[str, str], names: tuple[str, ...]) -> str | None:
+    return next((properties[name] for name in names if properties.get(name)), None)
+
+
+def _inline_field(text: str, label: str, following_labels: str) -> str | None:
+    lookahead = rf"(?=\s+(?:{following_labels})\s*[:=]|$)" if following_labels else r"$"
+    match = re.search(rf"(?i){label}\s*[:=]\s*(.*?){lookahead}", text)
+    return match.group(1).strip() if match else None
+
+
+def _bounded_text(value: str | None, limit: int = 160) -> str | None:
+    if value is None or len(value) <= limit:
+        return value
+    return f"{value[: limit - 3]}..."
+
+
+def _bounded_warnings(warnings: list[str]) -> tuple[str, ...]:
+    unique = list(dict.fromkeys(warnings))
+    if len(unique) > _MAX_SYSTEM_SUMMARY:
+        unique = unique[: _MAX_SYSTEM_SUMMARY - 1] + ["additional parse warnings truncated"]
+    return tuple(unique)

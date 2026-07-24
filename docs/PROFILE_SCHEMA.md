@@ -18,11 +18,15 @@ truth tables and are never inferred from the target.
   "packages": {},
   "camera": {},
   "sensors": {},
-  "hal": {}
+  "hal": {},
+  "audio": {},
+  "battery": {},
+  "thermal": {},
+  "storage": {}
 }
 ```
 
-`schema_version` must begin with `1.`, `2.`, or `3.`. `name` is required. All
+`schema_version` must begin with `1.`, `2.`, `3.`, or `4.`. `name` is required. All
 other sections are optional and default to empty reference data.
 
 ## Identity and build
@@ -123,6 +127,56 @@ camera-to-device identity, sensor-to-SoC compatibility, or the meaning of an
 inventoried DRM, KeyMint, or other native service. Unsupported commands,
 permission errors, timeouts, and incomplete parser output are not mismatch
 evidence.
+
+## Phase 4 system references
+
+Phase 4 sections are opt-in. Empty or omitted sections remain inventory only,
+and only explicitly present fields are evaluated.
+
+```json
+{
+  "audio": {
+    "minimum_output_device_count": 1,
+    "minimum_input_device_count": 1,
+    "required_output_device_types": ["AUDIO_DEVICE_OUT_SPEAKER"],
+    "required_input_device_types": ["AUDIO_DEVICE_IN_BUILTIN_MIC"],
+    "required_output_formats": ["AUDIO_FORMAT_PCM_16_BIT"],
+    "required_sample_rates": [48000],
+    "require_audio_service_available": true,
+    "require_audio_policy_available": true
+  },
+  "battery": {
+    "require_present": true,
+    "allowed_health": ["GOOD"],
+    "allowed_plugged_sources": ["NONE", "AC", "USB", "WIRELESS"],
+    "minimum_level_percent": 5,
+    "maximum_temperature_tenths_c": 600,
+    "require_property_service_available": true
+  },
+  "thermal": {
+    "require_thermal_service_available": true,
+    "required_sensor_types": ["CPU", "BATTERY"],
+    "allowed_current_severity": ["NONE", "LIGHT", "MODERATE"],
+    "maximum_sensor_temperature_c": {"BATTERY": 60.0, "SKIN": 55.0},
+    "require_power_service_available": true,
+    "allowed_wakefulness": ["AWAKE", "DOZING", "ASLEEP"]
+  },
+  "storage": {
+    "required_filesystem_types": ["ext4"],
+    "required_mount_points": ["/data", "/system"],
+    "require_data_mount_read_write": true,
+    "minimum_data_available_kb": 1048576,
+    "allowed_volume_types": ["PRIVATE", "EMULATED", "PUBLIC"],
+    "require_mount_service_available": true
+  }
+}
+```
+
+Extra devices, routes, battery fields, thermal sensors, mounts, volumes,
+partitions, and filesystems never create findings. The rule engine does not
+compare effect UUIDs, storage UUIDs, disk names, or transient client IDs. It
+does not infer battery degradation, thermal design quality, storage health,
+hardware authenticity, performance, or external-service outcomes.
 
 ## Findings
 

@@ -1,4 +1,4 @@
-"""The frozen Phase 1/2 set plus Phase 3 hardware inventory for v0.10.0rc1."""
+"""Frozen Phase 1-3 collectors plus additive Phase 4 system inventory."""
 
 from __future__ import annotations
 
@@ -111,6 +111,78 @@ HAL_COMMANDS = (
     CommandSpec("hal.lshal", "hal", ("lshal",), 30),
     CommandSpec("hal.lshal_interfaces", "hal", ("lshal", "-i"), 30),
     CommandSpec("hal.dumpsys_services", "hal", ("dumpsys", "-l"), 20),
+)
+
+AUDIO_COMMANDS = (
+    CommandSpec("audio.dumpsys_audio", "audio", ("dumpsys", "audio"), 20),
+    CommandSpec("audio.audio_flinger", "audio", ("dumpsys", "media.audio_flinger"), 30),
+    CommandSpec("audio.audio_policy", "audio", ("dumpsys", "media.audio_policy"), 30),
+    CommandSpec(
+        "audio.policy_ports",
+        "audio",
+        ("cmd", "media.audio_policy", "list-audio-ports"),
+        20,
+    ),
+    CommandSpec(
+        "audio.policy_patches",
+        "audio",
+        ("cmd", "media.audio_policy", "list-audio-patches"),
+        20,
+    ),
+)
+
+BATTERY_COMMANDS = (
+    CommandSpec("battery.dumpsys_battery", "battery", ("dumpsys", "battery"), 20),
+    CommandSpec("battery.properties", "battery", ("dumpsys", "batteryproperties"), 20),
+    CommandSpec("battery.cmd_status", "battery", ("cmd", "battery", "get-status"), 10),
+    CommandSpec("battery.cmd_health", "battery", ("cmd", "battery", "get-health"), 10),
+    CommandSpec("battery.cmd_level", "battery", ("cmd", "battery", "get-level"), 10),
+    CommandSpec("battery.cmd_plugged", "battery", ("cmd", "battery", "get-plugged"), 10),
+    CommandSpec("battery.cmd_current", "battery", ("cmd", "battery", "get-current"), 10),
+    CommandSpec(
+        "battery.cmd_temperature",
+        "battery",
+        ("cmd", "battery", "get-temperature"),
+        10,
+    ),
+    CommandSpec("battery.cmd_counter", "battery", ("cmd", "battery", "get-counter"), 10),
+    CommandSpec(
+        "battery.cmd_charging_status",
+        "battery",
+        ("cmd", "battery", "get-charging-status"),
+        10,
+    ),
+)
+
+THERMAL_COMMANDS = (
+    CommandSpec("thermal.service", "thermal", ("dumpsys", "thermalservice"), 30),
+    CommandSpec("thermal.power", "thermal", ("dumpsys", "power"), 30),
+    CommandSpec("thermal.deviceidle", "thermal", ("dumpsys", "deviceidle"), 20),
+    CommandSpec("thermal.cmd_dump", "thermal", ("cmd", "thermalservice", "dump"), 30),
+    CommandSpec("thermal.power_mode", "thermal", ("cmd", "power", "get-mode"), 10),
+    CommandSpec(
+        "thermal.fixed_performance_mode",
+        "thermal",
+        ("cmd", "power", "get-fixed-performance-mode-enabled"),
+        10,
+    ),
+)
+
+STORAGE_COMMANDS = (
+    CommandSpec("storage.df_k", "storage", ("df", "-k"), 20),
+    CommandSpec("storage.mount", "storage", ("mount",), 20),
+    CommandSpec("storage.proc_mounts", "storage", ("cat", "/proc/mounts"), 20),
+    CommandSpec("storage.proc_filesystems", "storage", ("cat", "/proc/filesystems"), 15),
+    CommandSpec("storage.proc_partitions", "storage", ("cat", "/proc/partitions"), 15),
+    CommandSpec("storage.dumpsys_mount", "storage", ("dumpsys", "mount"), 30),
+    CommandSpec("storage.volumes", "storage", ("sm", "list-volumes", "all"), 20),
+    CommandSpec("storage.disks", "storage", ("sm", "list-disks"), 20),
+    CommandSpec(
+        "storage.primary_uuid",
+        "storage",
+        ("sm", "get-primary-storage-uuid"),
+        10,
+    ),
 )
 
 DEFAULT_PACKAGES = (
@@ -275,6 +347,10 @@ BUILTIN_COLLECTORS = cast(
     _OptionalCommandCollector("camera", ("camera",), CAMERA_COMMANDS),
     _OptionalCommandCollector("sensors", ("sensors",), SENSOR_COMMANDS),
     _OptionalCommandCollector("hal", ("hal",), HAL_COMMANDS),
+    _OptionalCommandCollector("audio", ("audio",), AUDIO_COMMANDS),
+    _OptionalCommandCollector("battery", ("battery",), BATTERY_COMMANDS),
+    _OptionalCommandCollector("thermal", ("thermal",), THERMAL_COMMANDS),
+    _OptionalCommandCollector("storage", ("storage",), STORAGE_COMMANDS),
     ),
 )
 

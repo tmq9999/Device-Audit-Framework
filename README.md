@@ -1,6 +1,6 @@
 # Device Audit Framework
 
-A read-only Android research CLI that captures redacted ADB evidence, replays it offline, and evaluates only explicitly selected profile expectations. Phase 3 adds bounded camera, sensor, HAL, and native-service inventory; it does not infer commercial-device identity or analyze attestation services.
+A read-only Android research CLI that captures redacted ADB evidence, replays it offline, and evaluates only explicitly selected profile expectations. Phase 4 adds bounded audio, battery, thermal/power, and storage inventory on top of the frozen Phase 1-3 collectors; it does not infer commercial-device identity or analyze attestation services.
 
 The framework inventories observable evidence. It does not modify the Android device, predict external-service outcomes, or turn an unreferenced difference into a mismatch.
 
@@ -104,6 +104,10 @@ The explicit equivalent is `python device_audit.py audit ...`.
 --skip-camera
 --skip-sensors
 --skip-hal
+--skip-audio
+--skip-battery
+--skip-thermal
+--skip-storage
 --package PACKAGE
 ```
 
@@ -171,9 +175,10 @@ run_001/
     └── ...
 ```
 
-Evidence bundle schema `3.0` adds camera, sensor, and HAL collector-state
-metadata while retaining the Phase 1/2 command and artifact format. The
-offline reader continues to accept verified schema `1.0` and `2.0` bundles.
+Evidence bundle schema `4.0` adds audio, battery, thermal, and storage
+collector-state metadata while retaining the Phase 1-3 command and artifact
+format. The offline reader continues to accept verified schema `1.0`, `2.0`,
+and `3.0` bundles.
 `evidence.json` records the bundle schema, redacted command metadata,
 artifact paths, SHA-256 digests, and an overall bundle digest. Analysis rejects
 missing, modified, malformed, undeclared, or path-escaping artifacts.
@@ -241,6 +246,16 @@ incomplete parsing cannot create a mismatch finding. HAL names such as DRM or
 KeyMint may be inventoried when exposed by the device, but this tool does not
 analyze DRM, key attestation, Play Integrity, or other remote services.
 
+Phase 4 adds optional `audio`, `battery`, `thermal`, and `storage` references.
+They constrain only the fields explicitly present: minimum audio device counts
+and required types/formats/rates; present battery, allowed health or plugged
+source, level and temperature bounds; thermal service, sensor-type, severity,
+temperature, power-service, and wakefulness references; and storage filesystem,
+mount, available-space, volume-type, and mount-service references. Audio is
+metadata-only (no playback or recording), battery data is not degradation
+analysis, thermal collection performs no load generation, and storage performs
+no writes or benchmarks. Extra inventory never creates a mismatch.
+
 No aggregate consistency, stealth, bypass, integrity, eligibility, or detection score is calculated. The tool does not predict Play Integrity, Google One, or any other external-service behavior.
 
 ## Redaction
@@ -300,6 +315,36 @@ adb -s SERIAL shell dumpsys sensorservice
 adb -s SERIAL shell lshal
 adb -s SERIAL shell lshal -i
 adb -s SERIAL shell dumpsys -l
+adb -s SERIAL shell dumpsys audio
+adb -s SERIAL shell dumpsys media.audio_flinger
+adb -s SERIAL shell dumpsys media.audio_policy
+adb -s SERIAL shell cmd media.audio_policy list-audio-ports
+adb -s SERIAL shell cmd media.audio_policy list-audio-patches
+adb -s SERIAL shell dumpsys battery
+adb -s SERIAL shell dumpsys batteryproperties
+adb -s SERIAL shell cmd battery get-status
+adb -s SERIAL shell cmd battery get-health
+adb -s SERIAL shell cmd battery get-level
+adb -s SERIAL shell cmd battery get-plugged
+adb -s SERIAL shell cmd battery get-current
+adb -s SERIAL shell cmd battery get-temperature
+adb -s SERIAL shell cmd battery get-counter
+adb -s SERIAL shell cmd battery get-charging-status
+adb -s SERIAL shell dumpsys thermalservice
+adb -s SERIAL shell dumpsys power
+adb -s SERIAL shell dumpsys deviceidle
+adb -s SERIAL shell cmd thermalservice dump
+adb -s SERIAL shell cmd power get-mode
+adb -s SERIAL shell cmd power get-fixed-performance-mode-enabled
+adb -s SERIAL shell df -k
+adb -s SERIAL shell mount
+adb -s SERIAL shell cat /proc/mounts
+adb -s SERIAL shell cat /proc/filesystems
+adb -s SERIAL shell cat /proc/partitions
+adb -s SERIAL shell dumpsys mount
+adb -s SERIAL shell sm list-volumes all
+adb -s SERIAL shell sm list-disks
+adb -s SERIAL shell sm get-primary-storage-uuid
 ```
 
 Root-gated commands execute only after `command -v su` and `su -c id` successfully establish UID 0. They are bounded read-only inventory commands; the tool does not recurse through `/data/adb` or read module files.

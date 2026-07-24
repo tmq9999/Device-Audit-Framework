@@ -1,0 +1,32 @@
+Audio service status: available
+Audio server status: available
+Audio policy status: available
+mode: MODE_NORMAL
+master mute: false
+microphone mute: false
+fixed volume: false
+communication device: AUDIO_DEVICE_OUT_SPEAKER
+Audio Device ID: <redacted>
+role: sink
+direction: output
+type: AUDIO_DEVICE_OUT_SPEAKER
+address: built-in
+name: Synthetic Speaker
+connected: true
+active: true
+formats: AUDIO_FORMAT_PCM_16_BIT AUDIO_FORMAT_AAC
+sample rates: 48000,44100
+channel masks: AUDIO_CHANNEL_OUT_STEREO
+flags: AUDIO_OUTPUT_FLAG_PRIMARY
+Audio Device ID: <redacted>
+role: source
+direction: input
+type: AUDIO_DEVICE_IN_BUILTIN_MIC
+address: built-in
+name: Synthetic Mic
+connected: true
+active: true
+formats: AUDIO_FORMAT_PCM_16_BIT
+sample rates: 48000
+channel masks: AUDIO_CHANNEL_IN_MONO
+flags: AUDIO_INPUT_FLAG_FAST

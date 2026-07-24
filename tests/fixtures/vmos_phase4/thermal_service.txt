@@ -1,0 +1,7 @@
+Thermal service status: available
+Thermal HAL status: available
+Current thermal severity: NONE
+Sensor: name: soc type: CPU temperature: 43.5 C severity: NONE throttling: false hot thresholds: 85,90 cold thresholds: 0
+Sensor: name: battery type: BATTERY temperature: 28.0 C severity: NONE throttling: false hot thresholds: 60
+
+Cooling device: name: cpu-cooling type: cpu current: 1 max: 10

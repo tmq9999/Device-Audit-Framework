@@ -18,6 +18,8 @@ from device_audit.collector_api import (
     CollectorResult,
 )
 from device_audit.collectors import (
+    AUDIO_COMMANDS,
+    BATTERY_COMMANDS,
     BUILTIN_COLLECTORS,
     CAMERA_COMMANDS,
     DEFAULT_PACKAGES,
@@ -28,7 +30,9 @@ from device_audit.collectors import (
     ROOT_RUNTIME_COMMANDS,
     RUNTIME_COMMANDS,
     SENSOR_COMMANDS,
+    STORAGE_COMMANDS,
     TELEPHONY_COMMANDS,
+    THERMAL_COMMANDS,
 )
 from device_audit.models import CommandResult, EvidenceCommand
 
@@ -104,6 +108,10 @@ def test_builtin_collectors_are_uniquely_named_and_cover_current_sections() -> N
         "camera",
         "sensors",
         "hal",
+        "audio",
+        "battery",
+        "thermal",
+        "storage",
     ]
     assert sections == {
         "transport",
@@ -118,6 +126,10 @@ def test_builtin_collectors_are_uniquely_named_and_cover_current_sections() -> N
         "camera",
         "sensors",
         "hal",
+        "audio",
+        "battery",
+        "thermal",
+        "storage",
     }
 
 
@@ -137,6 +149,10 @@ def test_frozen_builtin_command_specs_and_default_packages_are_exact() -> None:
         *CAMERA_COMMANDS,
         *SENSOR_COMMANDS,
         *HAL_COMMANDS,
+        *AUDIO_COMMANDS,
+        *BATTERY_COMMANDS,
+        *THERMAL_COMMANDS,
+        *STORAGE_COMMANDS,
     )
 
     assert [(spec.id, spec.section, spec.arguments, spec.timeout_seconds) for spec in specs] == [
@@ -199,6 +215,36 @@ def test_frozen_builtin_command_specs_and_default_packages_are_exact() -> None:
         ("hal.lshal", "hal", ("lshal",), 30),
         ("hal.lshal_interfaces", "hal", ("lshal", "-i"), 30),
         ("hal.dumpsys_services", "hal", ("dumpsys", "-l"), 20),
+        ("audio.dumpsys_audio", "audio", ("dumpsys", "audio"), 20),
+        ("audio.audio_flinger", "audio", ("dumpsys", "media.audio_flinger"), 30),
+        ("audio.audio_policy", "audio", ("dumpsys", "media.audio_policy"), 30),
+        ("audio.policy_ports", "audio", ("cmd", "media.audio_policy", "list-audio-ports"), 20),
+        ("audio.policy_patches", "audio", ("cmd", "media.audio_policy", "list-audio-patches"), 20),
+        ("battery.dumpsys_battery", "battery", ("dumpsys", "battery"), 20),
+        ("battery.properties", "battery", ("dumpsys", "batteryproperties"), 20),
+        ("battery.cmd_status", "battery", ("cmd", "battery", "get-status"), 10),
+        ("battery.cmd_health", "battery", ("cmd", "battery", "get-health"), 10),
+        ("battery.cmd_level", "battery", ("cmd", "battery", "get-level"), 10),
+        ("battery.cmd_plugged", "battery", ("cmd", "battery", "get-plugged"), 10),
+        ("battery.cmd_current", "battery", ("cmd", "battery", "get-current"), 10),
+        ("battery.cmd_temperature", "battery", ("cmd", "battery", "get-temperature"), 10),
+        ("battery.cmd_counter", "battery", ("cmd", "battery", "get-counter"), 10),
+        ("battery.cmd_charging_status", "battery", ("cmd", "battery", "get-charging-status"), 10),
+        ("thermal.service", "thermal", ("dumpsys", "thermalservice"), 30),
+        ("thermal.power", "thermal", ("dumpsys", "power"), 30),
+        ("thermal.deviceidle", "thermal", ("dumpsys", "deviceidle"), 20),
+        ("thermal.cmd_dump", "thermal", ("cmd", "thermalservice", "dump"), 30),
+        ("thermal.power_mode", "thermal", ("cmd", "power", "get-mode"), 10),
+        ("thermal.fixed_performance_mode", "thermal", ("cmd", "power", "get-fixed-performance-mode-enabled"), 10),
+        ("storage.df_k", "storage", ("df", "-k"), 20),
+        ("storage.mount", "storage", ("mount",), 20),
+        ("storage.proc_mounts", "storage", ("cat", "/proc/mounts"), 20),
+        ("storage.proc_filesystems", "storage", ("cat", "/proc/filesystems"), 15),
+        ("storage.proc_partitions", "storage", ("cat", "/proc/partitions"), 15),
+        ("storage.dumpsys_mount", "storage", ("dumpsys", "mount"), 30),
+        ("storage.volumes", "storage", ("sm", "list-volumes", "all"), 20),
+        ("storage.disks", "storage", ("sm", "list-disks"), 20),
+        ("storage.primary_uuid", "storage", ("sm", "get-primary-storage-uuid"), 10),
     ]
     assert DEFAULT_PACKAGES == (
         "android",
@@ -240,6 +286,10 @@ def test_frozen_cli_commands_and_flags_are_exact() -> None:
         "--skip-camera",
         "--skip-sensors",
         "--skip-hal",
+        "--skip-audio",
+        "--skip-battery",
+        "--skip-thermal",
+        "--skip-storage",
         "--package",
         "--profile",
     }
@@ -258,6 +308,10 @@ def test_frozen_cli_commands_and_flags_are_exact() -> None:
         "--skip-camera",
         "--skip-sensors",
         "--skip-hal",
+        "--skip-audio",
+        "--skip-battery",
+        "--skip-thermal",
+        "--skip-storage",
         "--package",
     }
     assert _option_strings(subparsers.choices["analyze"]) == {

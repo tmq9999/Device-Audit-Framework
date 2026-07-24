@@ -1,0 +1,5 @@
+Audio Device ID: bad
+role: ???
+direction: sideways
+type: AUDIO_DEVICE_OUT_SPEAKER
+sample rates: bad,48000

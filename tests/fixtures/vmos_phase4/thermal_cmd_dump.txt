@@ -1,0 +1,1 @@
+Sensor: name: modem type: MODEM temperature: 38.0 C severity: NONE throttling: false
