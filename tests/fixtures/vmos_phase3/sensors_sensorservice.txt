@@ -1,0 +1,5 @@
+Sensorservice status: ACTIVE
+Handle: 100 | Name: VM Synthetic Accelerometer | Vendor: VM Synthetic | Version: 1 | Type: 1 | StringType: android.sensor.accelerometer | Reporting mode: continuous | Wake-up: false | Dynamic: false | MaxRange: 19.6 | Resolution: 0.01 | Power: 0.01 | MinDelay: 10000 | MaxDelay: 1000000 | FifoReserved: 0 | FifoMax: 0
+Handle: 101 | Name: VM Synthetic Vendor Gesture | Vendor: VM Synthetic | Version: 1 | Type: 65536 | StringType: com.synthetic.sensor.gesture | Reporting mode: special-trigger | Wake-up: true | Dynamic: true | MaxRange: 1 | Resolution: 1 | Power: 0.01 | MinDelay: 0 | MaxDelay: 0 | FifoReserved: 0 | FifoMax: 0
+Active sensors: 0
+Active connections: 0

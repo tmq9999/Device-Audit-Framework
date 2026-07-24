@@ -1,0 +1,2 @@
+[ro.hardware.camera]: [synthetic]
+[ro.hardware.sensors]: [synthetic]

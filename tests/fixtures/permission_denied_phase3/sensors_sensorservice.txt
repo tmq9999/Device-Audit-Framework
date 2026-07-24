@@ -1,0 +1,1 @@
+Permission Denial: cannot dump sensorservice from pid=5002

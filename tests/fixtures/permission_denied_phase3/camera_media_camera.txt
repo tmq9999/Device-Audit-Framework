@@ -1,0 +1,1 @@
+Permission Denial: cannot dump media.camera from pid=5001

@@ -1,0 +1,5 @@
+Sensorservice status: ACTIVE
+Handle: 41 | Name: Cảm biến gia tốc Synthetic | Vendor: Lineage Synthetic | Version: 1 | Type: 1 | StringType: android.sensor.accelerometer | Reporting mode: continuous | Wake-up: false | Dynamic: false | MaxRange: 39.2 | Resolution: 0.002 | Power: 0.10 | MinDelay: 5000 | MaxDelay: 1000000 | FifoReserved: 0 | FifoMax: 1024
+Handle: 42 | Name: Cảm biến vendor Synthetic | Vendor: Nhà cung cấp Synthetic | Version: 1 | Type: 70001 | StringType: org.synthetic.sensor.custom | Reporting mode: on-change | Wake-up: true | Dynamic: true | MaxRange: 1 | Resolution: 1 | Power: 0.02 | MinDelay: 0 | MaxDelay: 0 | FifoReserved: 0 | FifoMax: 0 | Permission: org.synthetic.permission.SENSOR
+Active sensors: 1
+Active connections: 1

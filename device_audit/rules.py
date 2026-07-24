@@ -7,13 +7,16 @@ from collections.abc import Mapping
 import re
 
 from device_audit.models import (
+    CameraInventory,
     Comparison,
     CpuTopology,
     DisplayInfo,
     ExpectedProfile,
     Finding,
+    HalInventory,
     KernelInfo,
     PackageInfo,
+    SensorInventory,
     TelephonyInfo,
 )
 
@@ -43,10 +46,24 @@ def evaluate_profile(
     display: DisplayInfo | None = None,
     telephony: TelephonyInfo | None = None,
     packages: Mapping[str, PackageInfo] | None = None,
+    camera: CameraInventory | None = None,
+    sensors: SensorInventory | None = None,
+    hal: HalInventory | None = None,
 ) -> list[Finding]:
     """Evaluate only those expectations explicitly declared by a profile."""
 
-    comparisons = compare_profile(properties, kernel, cpu, profile, display, telephony, packages)
+    comparisons = compare_profile(
+        properties,
+        kernel,
+        cpu,
+        profile,
+        display,
+        telephony,
+        packages,
+        camera,
+        sensors,
+        hal,
+    )
     findings: list[Finding] = []
     for comparison in comparisons:
         if comparison.status != "mismatched":
@@ -61,6 +78,12 @@ def evaluate_profile(
             findings.append(_telephony_finding(comparison))
         elif comparison.category == "packages":
             findings.append(_package_finding(comparison))
+        elif comparison.category == "camera":
+            findings.append(_camera_finding(comparison))
+        elif comparison.category == "sensors":
+            findings.append(_sensors_finding(comparison))
+        elif comparison.category == "hal":
+            findings.append(_hal_finding(comparison))
         else:
             findings.append(_property_finding(comparison))
     return findings
@@ -74,6 +97,9 @@ def compare_profile(
     display: DisplayInfo | None = None,
     telephony: TelephonyInfo | None = None,
     packages: Mapping[str, PackageInfo] | None = None,
+    camera: CameraInventory | None = None,
+    sensors: SensorInventory | None = None,
+    hal: HalInventory | None = None,
 ) -> list[Comparison]:
     """Return explicit matched, mismatched, or not-evaluated comparison states."""
 
@@ -86,6 +112,9 @@ def compare_profile(
     comparisons.extend(_compare_display(display, profile))
     comparisons.extend(_compare_telephony(telephony, profile))
     comparisons.extend(_compare_packages(packages or {}, profile))
+    comparisons.extend(_compare_camera(camera, profile))
+    comparisons.extend(_compare_sensors(sensors, profile))
+    comparisons.extend(_compare_hal(hal, profile))
     return comparisons
 
 
@@ -307,6 +336,177 @@ def _compare_packages(
             )
     return comparisons
 
+def _compare_camera(camera: CameraInventory | None, profile: ExpectedProfile) -> list[Comparison]:
+    comparisons: list[Comparison] = []
+    if profile.camera_minimum_count is not None:
+        observed_count = camera.camera_count if camera else None
+        comparisons.append(
+            Comparison(
+                "camera.minimum_camera_count",
+                "camera",
+                "not_evaluated" if observed_count is None else "matched" if observed_count >= profile.camera_minimum_count else "mismatched",
+                str(profile.camera_minimum_count),
+                str(observed_count) if observed_count is not None else None,
+                ("camera.media_camera", "camera.cmd_list"),
+            )
+        )
+    if profile.camera_required_facing:
+        observed_facing = {item.facing for item in camera.cameras} if camera else None
+        comparisons.append(
+            _required_values_comparison(
+                "camera.required_facing",
+                "camera",
+                profile.camera_required_facing,
+                observed_facing,
+                ("camera.media_camera",),
+            )
+        )
+    if profile.camera_required_ids:
+        observed_ids = {item.id for item in camera.cameras} if camera else None
+        comparisons.append(
+            _required_values_comparison(
+                "camera.required_camera_ids",
+                "camera",
+                profile.camera_required_ids,
+                observed_ids,
+                ("camera.media_camera", "camera.cmd_list"),
+            )
+        )
+    if profile.camera_allowed_hardware_levels:
+        candidates = list(camera.cameras) if camera else None
+        if candidates is not None and profile.camera_required_ids:
+            required_ids = set(profile.camera_required_ids)
+            candidates = [item for item in candidates if item.id in required_ids]
+        elif candidates is not None and profile.camera_required_facing:
+            required_facing = set(profile.camera_required_facing)
+            candidates = [item for item in candidates if item.facing in required_facing]
+        observed_hardware_levels = [item.hardware_level for item in candidates if item.hardware_level != "UNKNOWN"] if candidates is not None else None
+        comparisons.append(
+            _allowed_comparison(
+                "camera.hardware_levels",
+                "camera",
+                list(profile.camera_allowed_hardware_levels),
+                observed_hardware_levels,
+                ("camera.media_camera",),
+            )
+        )
+    if profile.camera_required_capabilities:
+        observed_capabilities = {capability for item in camera.cameras for capability in item.capability_names} if camera else None
+        comparisons.append(
+            _required_values_comparison(
+                "camera.required_capabilities",
+                "camera",
+                profile.camera_required_capabilities,
+                observed_capabilities,
+                ("camera.media_camera", "camera.cmd_dump"),
+            )
+        )
+    return comparisons
+
+def _compare_sensors(sensors: SensorInventory | None, profile: ExpectedProfile) -> list[Comparison]:
+    comparisons: list[Comparison] = []
+    if profile.sensors_minimum_count is not None:
+        observed_count = sensors.sensor_count if sensors else None
+        comparisons.append(
+            Comparison(
+                "sensors.minimum_sensor_count",
+                "sensors",
+                "not_evaluated" if observed_count is None else "matched" if observed_count >= profile.sensors_minimum_count else "mismatched",
+                str(profile.sensors_minimum_count),
+                str(observed_count) if observed_count is not None else None,
+                ("sensors.sensorservice",),
+            )
+        )
+    if profile.sensors_required_types:
+        observed_types = set(sensors.type_counts) if sensors else None
+        comparisons.append(
+            _required_values_comparison(
+                "sensors.required_types",
+                "sensors",
+                profile.sensors_required_types,
+                observed_types,
+                ("sensors.sensorservice",),
+            )
+        )
+    if profile.sensors_allowed_vendors:
+        observed_vendors = list(sensors.vendor_counts) if sensors else None
+        comparisons.append(
+            _allowed_comparison(
+                "sensors.vendors",
+                "sensors",
+                list(profile.sensors_allowed_vendors),
+                observed_vendors,
+                ("sensors.sensorservice",),
+            )
+        )
+    return comparisons
+
+def _compare_hal(hal: HalInventory | None, profile: ExpectedProfile) -> list[Comparison]:
+    comparisons: list[Comparison] = []
+    if profile.hal_required_interfaces:
+        observed_interfaces = [item.full_interface for item in hal.interfaces] if hal else None
+        status = "not_evaluated"
+        if observed_interfaces is not None:
+            status = "matched" if all(
+                any(_hal_interface_matches(expected, actual) for actual in observed_interfaces)
+                for expected in profile.hal_required_interfaces
+            ) else "mismatched"
+        comparisons.append(
+            Comparison(
+                "hal.required_interfaces",
+                "hal",
+                status,
+                json.dumps(list(profile.hal_required_interfaces), sort_keys=True),
+                json.dumps(observed_interfaces, sort_keys=True) if observed_interfaces is not None else None,
+                ("hal.lshal", "hal.lshal_interfaces", "hal.dumpsys_services"),
+            )
+        )
+    if profile.hal_required_families:
+        observed_families = set(hal.families) if hal else None
+        comparisons.append(
+            _required_values_comparison(
+                "hal.required_families",
+                "hal",
+                profile.hal_required_families,
+                observed_families,
+                ("hal.lshal", "hal.lshal_interfaces", "hal.dumpsys_services"),
+            )
+        )
+    if profile.hal_allowed_transports:
+        observed_transports = [item.transport for item in hal.interfaces if item.transport != "unknown"] if hal else None
+        comparisons.append(
+            _allowed_comparison(
+                "hal.transports",
+                "hal",
+                list(profile.hal_allowed_transports),
+                observed_transports,
+                ("hal.lshal", "hal.lshal_interfaces", "hal.dumpsys_services"),
+            )
+        )
+    return comparisons
+
+def _required_values_comparison(
+    field: str,
+    category: str,
+    required: tuple[str, ...],
+    observed: set[str] | None,
+    evidence: tuple[str, ...],
+) -> Comparison:
+    expected = json.dumps(list(required), sort_keys=True)
+    if observed is None:
+        return Comparison(field, category, "not_evaluated", expected, None, evidence)
+    return Comparison(
+        field,
+        category,
+        "matched" if set(required) <= observed else "mismatched",
+        expected,
+        json.dumps(sorted(observed), sort_keys=True),
+        evidence,
+    )
+
+def _hal_interface_matches(expected: str, observed: str) -> bool:
+    return observed == expected or observed.startswith(f"{expected}@") or observed.startswith(f"{expected}.")
+
 
 def _allowed_comparison(
     field: str,
@@ -394,6 +594,27 @@ def _package_finding(comparison: Comparison) -> Finding:
         "Package metadata differs from the selected profile's explicit reference.",
     )
 
+def _camera_finding(comparison: Comparison) -> Finding:
+    return _phase3_finding(
+        comparison,
+        "CAMERA_PROFILE_MISMATCH",
+        "Camera inventory differs from the selected profile's explicit reference.",
+    )
+
+def _sensors_finding(comparison: Comparison) -> Finding:
+    return _phase3_finding(
+        comparison,
+        "SENSORS_PROFILE_MISMATCH",
+        "Sensor inventory differs from the selected profile's explicit reference.",
+    )
+
+def _hal_finding(comparison: Comparison) -> Finding:
+    return _phase3_finding(
+        comparison,
+        "HAL_PROFILE_MISMATCH",
+        "HAL inventory differs from the selected profile's explicit reference.",
+    )
+
 
 def _phase2_finding(comparison: Comparison, finding_id: str, summary: str) -> Finding:
     return Finding(
@@ -407,4 +628,18 @@ def _phase2_finding(comparison: Comparison, finding_id: str, summary: str) -> Fi
         expected=comparison.expected,
         observed=comparison.observed,
         recommendation="Review the selected profile and the observed evidence before drawing conclusions.",
+    )
+
+def _phase3_finding(comparison: Comparison, finding_id: str, summary: str) -> Finding:
+    return Finding(
+        id=finding_id,
+        title="Explicit hardware inventory expectation differs",
+        category=comparison.category,
+        severity="medium",
+        confidence="high",
+        summary=summary,
+        evidence=comparison.evidence,
+        expected=comparison.expected,
+        observed=comparison.observed,
+        recommendation="Review the selected profile and observed hardware inventory before drawing conclusions.",
     )

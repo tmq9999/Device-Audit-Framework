@@ -23,8 +23,9 @@ different host.
 - `device_audit.collector_api` defines the stable `Collector` protocol,
   bounded `CommandSpec` objects, shared collector context, result values, and
   ordered registry.
-- `device_audit.collectors.builtin` contains the frozen Phase 1/2 command
-  groups. It is the authoritative command whitelist for the release.
+- `device_audit.collectors.builtin` contains the frozen Phase 1/2 groups and
+  the bounded Phase 3 `camera`, `sensors`, and `hal` groups. It is the
+  authoritative command whitelist for the branch.
 - `device_audit.capture` performs discovery, readiness checks, registry
   orchestration, and bundle persistence.
 - `device_audit.bundle` writes canonical redacted artifacts and verifies
@@ -54,11 +55,16 @@ This keeps the command whitelist auditable and reproducible.
 
 - Host subprocesses use argument lists and `shell=False`.
 - Every target shell command is run with the selected serial.
-- The Android command set is frozen; no new collectors are part of v0.9.0.
+- The Android command set is frozen for this Phase 3 milestone; no collector
+  outside camera, sensors, and HAL/native-service inventory is included.
 - Root-gated commands run only after a successful read-only UID 0 probe.
 - Collection errors become evidence states and do not discard successful
   sections; unexpected plugin exceptions are recorded and later collectors
   continue.
 - Reports contain compact parsed observations, never full raw dumps.
+- Camera, sensor, and HAL summaries are bounded and deterministically ordered;
+  complete redacted command output remains available only in raw artifacts.
+- Unsupported Phase 3 commands are recorded as evidence and do not abort other
+  collectors.
 - The framework never calculates stealth, bypass, integrity, eligibility, or
   detection scores and never predicts external-service outcomes.

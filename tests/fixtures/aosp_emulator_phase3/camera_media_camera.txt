@@ -1,0 +1,22 @@
+Camera service status: ACTIVE
+Number of camera devices: 2
+Provider: synthetic.aosp.emulator.camera
+Camera ID: 0
+Facing: BACK
+Orientation: 90
+Hardware level: LIMITED
+Flash available: false
+Capabilities: BACKWARD_COMPATIBLE
+Output formats: JPEG, YUV_420_888
+Output sizes: 1920x1080, 1280x720
+FPS ranges: [15, 30]
+Camera ID: 1
+Facing: FRONT
+Orientation: 270
+Hardware level: LIMITED
+Flash available: false
+Capabilities: BACKWARD_COMPATIBLE
+Output formats: JPEG, YUV_420_888
+Output sizes: 1280x720, 640x480
+FPS ranges: [15, 30]
+Active Camera Clients: 0

@@ -1,0 +1,1 @@
+0 android.hardware.camera.provider@2.7::ICameraProvider/internal/0: [synthetic]

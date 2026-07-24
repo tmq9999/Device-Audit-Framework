@@ -1,0 +1,2 @@
+android.hardware.camera.provider.ICameraProvider/legacy/0 binder
+android.hardware.sensors.ISensors/default binder

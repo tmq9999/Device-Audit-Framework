@@ -1,0 +1,3 @@
+android.hardware.camera.provider@x.y::ICameraProvider/default strange-columns server=unknown
+android.hardware.sensors@2.1::ISensors/default unusual_vendor_column hwbinder 64
+partial output follows

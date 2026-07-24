@@ -36,8 +36,9 @@ update the expected digest and the semantic assertion in the same change.
 
 ## Safety and scope
 
-- Do not add Android collectors, commands, or whitelist entries in a release
-  freeze task.
+- Phase 3 is limited to the existing `camera`, `sensors`, and `hal` hardware
+  inventory collectors. Do not add other Android collectors or whitelist
+  entries in this milestone.
 - Do not use `shell=True` or interpolate values into host commands.
 - Keep target commands serial-explicit and read-only.
 - Redact before writing raw output, metadata, logs, reports, or paths.
@@ -48,9 +49,11 @@ update the expected digest and the semantic assertion in the same change.
 ## Compatibility
 
 Preserve Phase 1 and Phase 2 bundle schemas (`1.0` and `2.0`) and existing
-command IDs. New fields must be optional for older bundles. Offline analysis
-must remain deterministic and semantically equivalent to the composed audit
-for the same bundle and profile.
+command IDs; Phase 3 uses schema `3.0`. New fields must be optional for older
+bundles. Offline analysis must remain deterministic and semantically
+equivalent to the composed audit for the same bundle and profile. Unsupported
+commands and collector failures must remain recorded rather than aborting
+collection.
 
 ## Pull requests
 

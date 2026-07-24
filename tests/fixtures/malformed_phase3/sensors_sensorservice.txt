@@ -1,0 +1,6 @@
+Sensorservice status: ACTIVE
+Handle: 900 | Name: Broken Numeric Sensor | Vendor: Synthetic Invalid | Version: one | Type: custom | StringType: com.synthetic.sensor.invalid | Reporting mode: unknown | Wake-up: maybe | Dynamic: maybe | MaxRange: huge | Resolution: tiny | Power: low | MinDelay: soon | MaxDelay: later | FifoReserved: none | FifoMax: many
+Handle: 901 | Name: Duplicate Name | Vendor: Synthetic Invalid | Version: 1 | Type: 1 | StringType: android.sensor.accelerometer | Wake-up: false
+Handle: 902 | Name: Duplicate Name | Vendor: Synthetic Invalid | Version: 1 | Type: 4 | StringType: android.sensor.gyroscope | Wake-up: true
+Active sensors: malformed
+Active connections: malformed

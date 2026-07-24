@@ -1,0 +1,13 @@
+Camera service status: ACTIVE
+Number of camera devices: 1
+Provider: synthetic.vmos.camera.provider
+Camera ID: 0
+Facing: BACK
+Orientation: 90
+Hardware level: LEGACY
+Flash available: false
+Capabilities: BACKWARD_COMPATIBLE
+Output formats: JPEG
+Output sizes: 1920x1080, 1280x720
+FPS ranges: [15, 30]
+Active Camera Clients: 0

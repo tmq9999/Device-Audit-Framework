@@ -12,25 +12,31 @@ from typing import Any
 from device_audit import __version__
 from device_audit.bundle import load_evidence_bundle
 from device_audit.models import (
+    CameraInventory,
     Comparison,
     CpuTopology,
     DisplayInfo,
     Finding,
+    HalInventory,
     KernelInfo,
     MagiskInfo,
     PackageInfo,
     RuntimeMarkers,
+    SensorInventory,
     TelephonyInfo,
 )
 from device_audit.parsers import (
+    parse_camera_info,
     parse_cpuinfo,
     parse_display_info,
+    parse_hal_info,
     parse_getprop,
     parse_kernel_info,
     parse_magisk_info,
     parse_online_cpu_count,
     parse_package_info,
     parse_runtime_markers,
+    parse_sensor_info,
     parse_telephony_info,
 )
 from device_audit.profiles import load_profile
@@ -76,13 +82,43 @@ def analyze_bundle(
     packages, packages_status = _parse_packages(bundle_dir, command_entries, collector_states)
     magisk, magisk_status = _parse_magisk(bundle_dir, commands, collector_states)
     runtime, runtime_status = _parse_runtime(bundle_dir, commands, collector_states)
+    camera, camera_status = _parse_camera(bundle_dir, commands, collector_states)
+    sensors, sensors_status = _parse_sensors(bundle_dir, commands, collector_states)
+    hal, hal_status = _parse_hal(
+        bundle_dir,
+        commands,
+        properties,
+        collector_states,
+    )
 
     profile = load_profile(profile_path) if profile_path else None
     comparisons = tuple(
-        compare_profile(properties, kernel, cpu, profile, display, telephony, packages)
+        compare_profile(
+            properties,
+            kernel,
+            cpu,
+            profile,
+            display,
+            telephony,
+            packages,
+            camera if camera_status == "observed" else None,
+            sensors if sensors_status == "observed" else None,
+            hal if hal_status == "observed" else None,
+        )
     )
     findings = tuple(
-        evaluate_profile(properties, kernel, cpu, profile, display, telephony, packages)
+        evaluate_profile(
+            properties,
+            kernel,
+            cpu,
+            profile,
+            display,
+            telephony,
+            packages,
+            camera if camera_status == "observed" else None,
+            sensors if sensors_status == "observed" else None,
+            hal if hal_status == "observed" else None,
+        )
     )
     collector_errors = sum(1 for entry in command_entries if entry["status"] != "observed")
     sections = {
@@ -152,9 +188,30 @@ def analyze_bundle(
             command_entries,
             "runtime_markers",
         ),
+        "camera": _section_payload(
+            camera_status,
+            asdict(camera) if camera else {},
+            command_entries,
+            "camera",
+        ),
+        "sensors": _section_payload(
+            sensors_status,
+            asdict(sensors) if sensors else {},
+            command_entries,
+            "sensors",
+        ),
+        "hal": _section_payload(
+            hal_status,
+            asdict(hal) if hal else {},
+            command_entries,
+            "hal",
+            source_command_ids={"runtime.services", "properties.getprop"},
+        ),
     }
+    for section_name, section in sections.items():
+        section["profile_comparison_status"] = _profile_comparison_status(comparisons, section_name)
     report = {
-        "schema_version": "2.0",
+        "schema_version": "3.0",
         "analyzer_version": __version__,
         "generated_at": _timestamp(),
         "bundle_schema_version": manifest["schema_version"],
@@ -221,6 +278,9 @@ def render_markdown_report(report: dict[str, Any]) -> str:
         ("google_play_services", "Google Play Services"),
         ("magisk", "Magisk Inventory"),
         ("runtime_markers", "Environment-Specific Markers"),
+        ("camera", "Camera Inventory"),
+        ("sensors", "Sensor Inventory"),
+        ("hal", "HAL and Native Services"),
     )
     for key, title in section_titles:
         _append_markdown_section(lines, title, report["sections"][key])
@@ -443,6 +503,53 @@ def _parse_runtime(
     )
     return runtime, _parsed_section_status(entries, any(entry["status"] == "observed" for entry in entries))
 
+def _parse_camera(
+    bundle_dir: Path,
+    commands: dict[str, dict[str, Any]],
+    collector_states: dict[str, str],
+) -> tuple[CameraInventory | None, str]:
+    entries = _entries_by_prefix(commands, "camera.")
+    if not entries:
+        return None, collector_states.get("camera", "not_evaluated")
+    camera = parse_camera_info(
+        _observed_stdout(bundle_dir, commands.get("camera.media_camera")),
+        _observed_stdout(bundle_dir, commands.get("camera.cmd_list")),
+        _observed_stdout(bundle_dir, commands.get("camera.cmd_dump")),
+    )
+    has_data = camera.camera_count > 0 or bool(camera.parse_warnings) or camera.service_status is not None
+    return camera, _parsed_section_status(entries, has_data)
+
+def _parse_sensors(
+    bundle_dir: Path,
+    commands: dict[str, dict[str, Any]],
+    collector_states: dict[str, str],
+) -> tuple[SensorInventory | None, str]:
+    entries = _entries_by_prefix(commands, "sensors.")
+    if not entries:
+        return None, collector_states.get("sensors", "not_evaluated")
+    sensors = parse_sensor_info(_observed_stdout(bundle_dir, commands.get("sensors.sensorservice")))
+    has_data = sensors.sensor_count > 0 or bool(sensors.parse_warnings) or sensors.service_status is not None
+    return sensors, _parsed_section_status(entries, has_data)
+
+def _parse_hal(
+    bundle_dir: Path,
+    commands: dict[str, dict[str, Any]],
+    properties: dict[str, str],
+    collector_states: dict[str, str],
+) -> tuple[HalInventory | None, str]:
+    entries = _entries_by_prefix(commands, "hal.")
+    if not entries:
+        return None, collector_states.get("hal", "not_evaluated")
+    hal = parse_hal_info(
+        _observed_stdout(bundle_dir, commands.get("hal.lshal")),
+        _observed_stdout(bundle_dir, commands.get("hal.lshal_interfaces")),
+        _observed_stdout(bundle_dir, commands.get("hal.dumpsys_services")),
+        _observed_stdout(bundle_dir, commands.get("runtime.services")),
+        properties,
+    )
+    has_data = hal.hal_count > 0 or hal.binder_service_count > 0 or hal.dumpsys_service_count > 0 or bool(hal.hal_properties)
+    return hal, _parsed_section_status(entries, has_data)
+
 
 def _section_payload(
     status: str,
@@ -465,6 +572,7 @@ def _section_payload(
         "permission_limits": [entry["id"] for entry in section_commands if entry["status"] == "permission_denied"],
         "timeouts": [entry["id"] for entry in section_commands if entry["status"] == "timeout"],
         "parse_errors": [section] if status == "parse_error" else [],
+        "unsupported_commands": [entry["id"] for entry in section_commands if entry["status"] == "unsupported"],
         "source_commands": [entry["id"] for entry in section_commands],
         "commands": {entry["id"]: entry["status"] for entry in section_commands},
     }
@@ -497,6 +605,8 @@ def _append_markdown_section(lines: list[str], title: str, section: dict[str, An
             f"- Permission limits: {_markdown_list(section['permission_limits'])}",
             f"- Timeouts: {_markdown_list(section['timeouts'])}",
             f"- Parse errors: {_markdown_list(section['parse_errors'])}",
+            f"- Unsupported commands: {_markdown_list(section['unsupported_commands'])}",
+            f"- Profile comparison: `{section['profile_comparison_status']}`",
             f"- Source commands: {_markdown_list(section['source_commands'])}",
         ]
     )
@@ -542,10 +652,18 @@ def _parsed_section_status(entries: list[dict[str, Any]], has_data: bool) -> str
     if has_data:
         return "observed"
     statuses = [entry["status"] for entry in entries]
-    for status in ("timeout", "permission_denied", "unavailable"):
+    for status in ("timeout", "permission_denied", "unsupported", "unavailable"):
         if status in statuses and "observed" not in statuses:
             return status
     return "parse_error" if "observed" in statuses else statuses[0] if statuses else "not_evaluated"
+
+def _profile_comparison_status(comparisons: tuple[Comparison, ...], category: str) -> str:
+    relevant = [comparison.status for comparison in comparisons if comparison.category == category]
+    if not relevant or all(status == "not_evaluated" for status in relevant):
+        return "not_evaluated"
+    if "mismatched" in relevant:
+        return "mismatched"
+    return "matched" if all(status == "matched" for status in relevant) else "not_evaluated"
 
 
 def _observed_stdout(bundle_dir: Path, entry: dict[str, Any] | None) -> str:

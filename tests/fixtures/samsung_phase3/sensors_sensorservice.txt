@@ -1,0 +1,6 @@
+Sensorservice status: ACTIVE
+Handle: 16 | Name: Synthetic Accelerometer | Vendor: Samsung Synthetic | Version: 3 | Type: 1 | StringType: android.sensor.accelerometer | Reporting mode: continuous | Wake-up: false | Dynamic: false | MaxRange: 78.4 | Resolution: 0.002 | Power: 0.18 | MinDelay: 2500 | MaxDelay: 1000000 | FifoReserved: 32 | FifoMax: 8192
+Handle: 17 | Name: Synthetic Accelerometer | Vendor: Samsung Synthetic | Version: 3 | Type: 35 | StringType: android.sensor.accelerometer_uncalibrated | Reporting mode: continuous | Wake-up: true | Dynamic: false | MaxRange: 78.4 | Resolution: 0.002 | Power: 0.18 | MinDelay: 2500 | MaxDelay: 1000000 | FifoReserved: 32 | FifoMax: 8192
+Handle: 18 | Name: Synthetic Hinge Angle | Vendor: Bosch Synthetic | Version: 1 | Type: 36 | StringType: android.sensor.hinge_angle | Reporting mode: on-change | Wake-up: false | Dynamic: true | MaxRange: 180 | Resolution: 0.1 | Power: 0.08 | MinDelay: 0 | MaxDelay: 0 | FifoReserved: 0 | FifoMax: 0
+Active sensors: 1
+Active connections: 2

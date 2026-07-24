@@ -23,7 +23,8 @@ the evidence bundle.
 
 `evidence.json` contains:
 
-- `schema_version`: `"1.0"` for Phase 1 or `"2.0"` for Phase 2 metadata.
+- `schema_version`: `"1.0"` for Phase 1, `"2.0"` for Phase 2, or `"3.0"`
+  for Phase 3 metadata.
 - `bundle_type`: `"device-audit-evidence"`.
 - `generated_at` and `tool_version`.
 - `target.serial`, always the literal `"<redacted-serial>"`.
@@ -31,8 +32,8 @@ the evidence bundle.
   artifact paths, lengths, and SHA-256 digests.
 - `commands_jsonl_sha256` and `audit_log_sha256`.
 - `bundle_digest`, calculated over the manifest without its own digest field.
-- `collector_states` in schema `2.0`, with one state for each Phase 2
-  collector section.
+- `collector_states` in schemas `2.0` and `3.0`. Schema `3.0` adds the
+  `camera`, `sensors`, and `hal` states to the Phase 2 section states.
 
 Raw stdout and stderr are canonical UTF-8 with LF newlines before hashing.
 The loader verifies each raw artifact, the command log, the audit log, and the
@@ -40,18 +41,25 @@ manifest digest. Artifact paths must remain inside the bundle directory.
 
 ## Status values
 
-Command and section state values are `observed`, `matched`, `mismatched`,
-`not_evaluated`, `timeout`, `permission_denied`, `unavailable`, or
-`parse_error` where applicable. A capture failure is represented in the
-bundle; successful commands remain replayable.
+Command and section state values are `observed`, `not_evaluated`, `timeout`,
+`permission_denied`, `unsupported`, `unavailable`, or `parse_error` where
+applicable. `matched` and `mismatched` are analysis comparison states rather
+than capture states. A command failure is represented in the bundle;
+successful commands remain replayable.
 
 ## Compatibility
 
-The v0.9.0 loader accepts both schema `1.0` and schema `2.0`. Schema `1.0`
-bundles have no `collector_states`; offline analysis derives legacy section
-states from command evidence and treats absent Phase 2 sections as
-`not_evaluated`. Schema `2.0` adds collector-state metadata without changing
-the Phase 1 command/artifact representation.
+The loader accepts schemas `1.0`, `2.0`, and `3.0`. Schema `1.0` bundles have
+no `collector_states`; offline analysis derives legacy section states from
+command evidence and treats absent optional sections as `not_evaluated`.
+Schema `2.0` adds Phase 2 collector-state metadata. Schema `3.0` adds Phase 3
+collector states and accepts the `unsupported` state used for Android-version
+dependent camera and HAL commands. Older command and artifact representations
+remain unchanged.
+
+The loader verifies that every file under `raw/` is declared by a manifest
+command. Missing or extra raw artifacts, modified metadata, future schemas,
+and path escapes are rejected before parsing.
 
 Changing a raw file, manifest field, command log, audit log, or digest makes a
 bundle invalid. Re-run capture rather than repairing a bundle by hand.

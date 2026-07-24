@@ -1,0 +1,1 @@
+Security exception: camera service access denied

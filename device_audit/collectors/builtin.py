@@ -97,6 +97,22 @@ MAGISK_COMMANDS = (
     ),
 )
 
+CAMERA_COMMANDS = (
+    CommandSpec("camera.media_camera", "camera", ("dumpsys", "media.camera"), 20),
+    CommandSpec("camera.cmd_list", "camera", ("cmd", "media.camera", "list"), 20),
+    CommandSpec("camera.cmd_dump", "camera", ("cmd", "media.camera", "dump"), 30),
+)
+
+SENSOR_COMMANDS = (
+    CommandSpec("sensors.sensorservice", "sensors", ("dumpsys", "sensorservice"), 20),
+)
+
+HAL_COMMANDS = (
+    CommandSpec("hal.lshal", "hal", ("lshal",), 30),
+    CommandSpec("hal.lshal_interfaces", "hal", ("lshal", "-i"), 30),
+    CommandSpec("hal.dumpsys_services", "hal", ("dumpsys", "-l"), 20),
+)
+
 DEFAULT_PACKAGES = (
     "android",
     "com.google.android.gms",
@@ -224,6 +240,24 @@ class _RuntimeCollector:
             commands.extend(context.run(spec) for spec in ROOT_RUNTIME_COMMANDS)
         return CollectorResult(commands=tuple(commands))
 
+@dataclass(frozen=True)
+class _OptionalCommandCollector:
+    collector_id: str
+    sections: tuple[str, ...]
+    specs: tuple[CommandSpec, ...]
+
+    def enabled(self, request: CollectionRequest) -> bool:
+        return all(not request.skips(section) for section in self.sections)
+
+    def collect(self, context: CollectorContext) -> CollectorResult:
+        commands: list[EvidenceCommand] = []
+        for spec in self.specs:
+            command = context.run(spec)
+            if _is_unsupported_command(command):
+                command = replace(command, status_override="unsupported")
+            commands.append(command)
+        return CollectorResult(commands=tuple(commands))
+
 
 BUILTIN_COLLECTORS = cast(
     tuple[Collector, ...],
@@ -238,6 +272,9 @@ BUILTIN_COLLECTORS = cast(
     _RootProbeCollector(),
     _MagiskCollector(),
     _RuntimeCollector(),
+    _OptionalCommandCollector("camera", ("camera",), CAMERA_COMMANDS),
+    _OptionalCommandCollector("sensors", ("sensors",), SENSOR_COMMANDS),
+    _OptionalCommandCollector("hal", ("hal",), HAL_COMMANDS),
     ),
 )
 
@@ -262,3 +299,19 @@ def _is_package_absence(command: EvidenceCommand) -> bool:
 def _is_command_absence(command: EvidenceCommand) -> bool:
     text = f"{command.result.stdout}\n{command.result.stderr}".lower()
     return "not found" in text or "inaccessible" in text
+
+def _is_unsupported_command(command: EvidenceCommand) -> bool:
+    text = f"{command.result.stdout} {command.result.stderr}".strip().lower()
+    first_line = text.splitlines()[0] if text else ""
+    return any(
+        marker in first_line
+        for marker in (
+            "unknown command",
+            "unknown option",
+            "can't find service",
+            "service not found",
+            "not found",
+            "inaccessible or not found",
+            "not recognized",
+        )
+    )

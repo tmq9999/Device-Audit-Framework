@@ -1,0 +1,1 @@
+Unknown command: media.camera list

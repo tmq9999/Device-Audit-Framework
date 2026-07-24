@@ -1,0 +1,2 @@
+android.hardware.camera.provider@::ICameraProvider/default
+android.hardware.sensors.ISensors/default

@@ -1,0 +1,9 @@
+2026-07-24T14:09:28+00:00 command=properties.getprop status=observed exit_code=0 duration_ms=1 stdout_length=69 stderr_length=0 timeout=False
+2026-07-24T14:09:28+00:00 command=runtime.services status=observed exit_code=0 duration_ms=1 stdout_length=80 stderr_length=0 timeout=False
+2026-07-24T14:09:28+00:00 command=camera.media_camera status=observed exit_code=0 duration_ms=1 stdout_length=758 stderr_length=0 timeout=False
+2026-07-24T14:09:28+00:00 command=camera.cmd_list status=observed exit_code=0 duration_ms=1 stdout_length=26 stderr_length=0 timeout=False
+2026-07-24T14:09:28+00:00 command=camera.cmd_dump status=observed exit_code=0 duration_ms=1 stdout_length=262 stderr_length=0 timeout=False
+2026-07-24T14:09:28+00:00 command=sensors.sensorservice status=observed exit_code=0 duration_ms=1 stdout_length=1280 stderr_length=0 timeout=False
+2026-07-24T14:09:28+00:00 command=hal.lshal status=observed exit_code=0 duration_ms=1 stdout_length=315 stderr_length=0 timeout=False
+2026-07-24T14:09:28+00:00 command=hal.lshal_interfaces status=observed exit_code=0 duration_ms=1 stdout_length=160 stderr_length=0 timeout=False
+2026-07-24T14:09:28+00:00 command=hal.dumpsys_services status=observed exit_code=0 duration_ms=1 stdout_length=173 stderr_length=0 timeout=False

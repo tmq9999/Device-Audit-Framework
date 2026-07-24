@@ -1,0 +1,2 @@
+android.hardware.camera.provider@2.4::ICameraProvider/legacy/0 hwbinder 64 running pid=3201
+android.hardware.sensors@2.0::ISensors/default hwbinder 64 running pid=3202

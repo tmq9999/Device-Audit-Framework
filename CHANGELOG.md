@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased — Phase 3
+
+- Add bounded, read-only `camera`, `sensors`, and `hal` inventory collectors.
+- Introduce evidence bundle schema `3.0` while preserving schema `1.0` and
+  `2.0` offline replay.
+- Add optional profile-driven camera, sensor, and HAL comparisons; omitted
+  references remain inventory-only.
+- Record unsupported Phase 3 commands without aborting collection.
+
 ## 0.9.0 RC 2 — tag `v0.9.0-rc.2`
 
 - Define an explicit Ruff lint rule set so CI remains stable across compatible

@@ -1,0 +1,5 @@
+Camera ID: 0
+Capabilities: LOGICAL_MULTI_CAMERA, RAW
+Stream configuration: format=JPEG output size=4000x3000
+Camera ID: 1
+Stream configuration: format=JPEG output size=3264x2448

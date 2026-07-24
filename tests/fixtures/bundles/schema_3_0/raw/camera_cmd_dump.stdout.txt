@@ -1,0 +1,6 @@
+Camera ID: 0
+Capabilities: BACKWARD_COMPATIBLE, RAW, LOGICAL_MULTI_CAMERA
+Stream configuration: format=JPEG output size=4080x3072
+Stream configuration: format=YUV_420_888 output size=1920x1080
+Camera ID: 1
+Stream configuration: format=JPEG output size=2048x1536

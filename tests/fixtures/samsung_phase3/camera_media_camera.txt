@@ -1,0 +1,32 @@
+Camera service status: ACTIVE
+Number of camera devices: 3
+Provider: synthetic.samsung.camera.provider
+Camera ID: 0
+Facing: BACK
+Orientation: 90
+Hardware level: LEVEL_3
+Flash available: true
+Capabilities: BACKWARD_COMPATIBLE, RAW, LOGICAL_MULTI_CAMERA
+Physical camera IDs: 2, 3, 4
+Output formats: JPEG, YUV_420_888, RAW_SENSOR
+Output sizes: 4000x3000, 3840x2160
+FPS ranges: [15, 30], [30, 60]
+Camera ID: 1
+Facing: FRONT
+Orientation: 270
+Hardware level: FULL
+Flash available: false
+Capabilities: BACKWARD_COMPATIBLE
+Output formats: JPEG, YUV_420_888
+Output sizes: 3264x2448, 1920x1080
+FPS ranges: [15, 30]
+Camera ID: 5
+Facing: EXTERNAL
+Orientation: 0
+Hardware level: EXTERNAL
+Flash available: false
+Capabilities: BACKWARD_COMPATIBLE
+Output formats: YUV_420_888
+Output sizes: 1920x1080
+Concurrent camera combinations: {0, 1}, {1, 5}
+Active Camera Clients: 0

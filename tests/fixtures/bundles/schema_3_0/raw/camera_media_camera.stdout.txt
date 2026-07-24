@@ -1,0 +1,26 @@
+Camera service status: ACTIVE
+Number of camera devices: 2
+Provider: synthetic.pixel.camera.provider
+Camera ID: 0
+Facing: BACK
+Orientation: 90
+Hardware level: FULL
+Flash available: true
+Capabilities: BACKWARD_COMPATIBLE, RAW, LOGICAL_MULTI_CAMERA, ULTRA_HIGH_RESOLUTION_SENSOR
+Physical camera IDs: 2, 3
+Output formats: JPEG, YUV_420_888, RAW_SENSOR
+Output sizes: 4080x3072, 3840x2160, 1920x1080
+FPS ranges: [15, 30], [30, 60]
+Device version: 3.7
+Camera ID: 1
+Facing: FRONT
+Orientation: 270
+Hardware level: LEVEL_3
+Flash available: false
+Capabilities: BACKWARD_COMPATIBLE, DEPTH_OUTPUT
+Output formats: JPEG, YUV_420_888
+Output sizes: 2048x1536, 1920x1080
+FPS ranges: [15, 30]
+Device version: 3.7
+Concurrent camera combinations: {0, 1}
+Active Camera Clients: 1

@@ -30,6 +30,14 @@ Integrity, Google One, account, or other external-service behavior.
 - Explicit native topology mismatches use `CPU_TOPOLOGY_MISMATCH`.
 - Explicit Phase 2 references use display, telephony, or package-specific
   mismatch IDs.
+- Explicit Phase 3 references use `CAMERA_PROFILE_MISMATCH`,
+  `SENSORS_PROFILE_MISMATCH`, or `HAL_PROFILE_MISMATCH`.
+
+Camera, sensor, and HAL observations are bounded summaries. Extra cameras,
+sensors, interfaces, capabilities, and transports do not create findings when
+the profile does not require their absence. Unsupported, permission-denied,
+timed-out, unavailable, and incomplete sections remain `not_evaluated` for
+profile comparison.
 
 Finding severity and confidence describe the comparison evidence; they are
 not a device eligibility judgment. Researchers must verify the selected
