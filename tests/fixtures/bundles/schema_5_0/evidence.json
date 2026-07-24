@@ -1,0 +1,326 @@
+{
+  "audit_log_sha256": "de895c3caac49a001553451d2440997903f0a139a3dc5d481cb1aa9eb185e138",
+  "bundle_digest": "e1a805f6636a2d04eafc895b7766f30038c7e6328fdfbdd120a3eb8b90cb867f",
+  "bundle_type": "device-audit-evidence",
+  "collector_states": {
+    "audio": "not_evaluated",
+    "battery": "not_evaluated",
+    "camera": "not_evaluated",
+    "display": "not_evaluated",
+    "graphics": "observed",
+    "hal": "not_evaluated",
+    "input": "observed",
+    "magisk": "not_evaluated",
+    "memory": "observed",
+    "network": "observed",
+    "packages": "not_evaluated",
+    "runtime_markers": "not_evaluated",
+    "sensors": "not_evaluated",
+    "storage": "not_evaluated",
+    "telephony": "not_evaluated",
+    "thermal": "not_evaluated"
+  },
+  "commands": [
+    {
+      "command": [
+        "adb",
+        "-s",
+        "<redacted-serial>",
+        "shell",
+        "network.connectivity"
+      ],
+      "duration_ms": 1,
+      "exit_code": 0,
+      "id": "network.connectivity",
+      "section": "network",
+      "status": "observed",
+      "stderr_length": 0,
+      "stderr_path": "raw/network_connectivity.stderr.txt",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_length": 240,
+      "stdout_path": "raw/network_connectivity.stdout.txt",
+      "stdout_sha256": "4376e63836946f06dd3c660976354ad7ea4fb79f0563896b1bc84585dc1e36cb",
+      "timed_out": false
+    },
+    {
+      "command": [
+        "adb",
+        "-s",
+        "<redacted-serial>",
+        "shell",
+        "network.ip_link"
+      ],
+      "duration_ms": 1,
+      "exit_code": 0,
+      "id": "network.ip_link",
+      "section": "network",
+      "status": "observed",
+      "stderr_length": 0,
+      "stderr_path": "raw/network_ip_link.stderr.txt",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_length": 423,
+      "stdout_path": "raw/network_ip_link.stdout.txt",
+      "stdout_sha256": "c4fa445d62a9a9d9f3c8862c8e027459be2a006bfcb35d041ab93be828067fc2",
+      "timed_out": false
+    },
+    {
+      "command": [
+        "adb",
+        "-s",
+        "<redacted-serial>",
+        "shell",
+        "network.wifi_status"
+      ],
+      "duration_ms": 1,
+      "exit_code": 0,
+      "id": "network.wifi_status",
+      "section": "network",
+      "status": "observed",
+      "stderr_length": 0,
+      "stderr_path": "raw/network_wifi_status.stderr.txt",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_length": 57,
+      "stdout_path": "raw/network_wifi_status.stdout.txt",
+      "stdout_sha256": "0440be5cdd5f28c985204fadc97680fb08b962ddbd17acbcc60de511878790b7",
+      "timed_out": false
+    },
+    {
+      "command": [
+        "adb",
+        "-s",
+        "<redacted-serial>",
+        "shell",
+        "network.airplane_mode"
+      ],
+      "duration_ms": 1,
+      "exit_code": 0,
+      "id": "network.airplane_mode",
+      "section": "network",
+      "status": "observed",
+      "stderr_length": 0,
+      "stderr_path": "raw/network_airplane_mode.stderr.txt",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_length": 2,
+      "stdout_path": "raw/network_airplane_mode.stdout.txt",
+      "stdout_sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "timed_out": false
+    },
+    {
+      "command": [
+        "adb",
+        "-s",
+        "<redacted-serial>",
+        "shell",
+        "network.bluetooth_state"
+      ],
+      "duration_ms": 1,
+      "exit_code": 0,
+      "id": "network.bluetooth_state",
+      "section": "network",
+      "status": "observed",
+      "stderr_length": 0,
+      "stderr_path": "raw/network_bluetooth_state.stderr.txt",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_length": 2,
+      "stdout_path": "raw/network_bluetooth_state.stdout.txt",
+      "stdout_sha256": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865",
+      "timed_out": false
+    },
+    {
+      "command": [
+        "adb",
+        "-s",
+        "<redacted-serial>",
+        "shell",
+        "graphics.surface_flinger"
+      ],
+      "duration_ms": 1,
+      "exit_code": 0,
+      "id": "graphics.surface_flinger",
+      "section": "graphics",
+      "status": "observed",
+      "stderr_length": 0,
+      "stderr_path": "raw/graphics_surface_flinger.stderr.txt",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_length": 197,
+      "stdout_path": "raw/graphics_surface_flinger.stdout.txt",
+      "stdout_sha256": "78b0699e44fcafe2836fff13abf4fe6b01ce27071bb7ad8fd9dbac35da9ff082",
+      "timed_out": false
+    },
+    {
+      "command": [
+        "adb",
+        "-s",
+        "<redacted-serial>",
+        "shell",
+        "graphics.gpu"
+      ],
+      "duration_ms": 1,
+      "exit_code": 0,
+      "id": "graphics.gpu",
+      "section": "graphics",
+      "status": "observed",
+      "stderr_length": 0,
+      "stderr_path": "raw/graphics_gpu.stderr.txt",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_length": 50,
+      "stdout_path": "raw/graphics_gpu.stdout.txt",
+      "stdout_sha256": "c46dd0cdf4db6bdff053999bff25812000e96587436c0608a92c6355c258b0fd",
+      "timed_out": false
+    },
+    {
+      "command": [
+        "adb",
+        "-s",
+        "<redacted-serial>",
+        "shell",
+        "graphics.egl_property"
+      ],
+      "duration_ms": 1,
+      "exit_code": 0,
+      "id": "graphics.egl_property",
+      "section": "graphics",
+      "status": "observed",
+      "stderr_length": 0,
+      "stderr_path": "raw/graphics_egl_property.stderr.txt",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_length": 5,
+      "stdout_path": "raw/graphics_egl_property.stdout.txt",
+      "stdout_sha256": "fd370a4dff93ec9aa084199ded89341b7def8752a476ae5049916736cee7a844",
+      "timed_out": false
+    },
+    {
+      "command": [
+        "adb",
+        "-s",
+        "<redacted-serial>",
+        "shell",
+        "graphics.vulkan_property"
+      ],
+      "duration_ms": 1,
+      "exit_code": 0,
+      "id": "graphics.vulkan_property",
+      "section": "graphics",
+      "status": "observed",
+      "stderr_length": 0,
+      "stderr_path": "raw/graphics_vulkan_property.stderr.txt",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_length": 5,
+      "stdout_path": "raw/graphics_vulkan_property.stdout.txt",
+      "stdout_sha256": "fd370a4dff93ec9aa084199ded89341b7def8752a476ae5049916736cee7a844",
+      "timed_out": false
+    },
+    {
+      "command": [
+        "adb",
+        "-s",
+        "<redacted-serial>",
+        "shell",
+        "input.dumpsys"
+      ],
+      "duration_ms": 1,
+      "exit_code": 0,
+      "id": "input.dumpsys",
+      "section": "input",
+      "status": "observed",
+      "stderr_length": 0,
+      "stderr_path": "raw/input_dumpsys.stderr.txt",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_length": 308,
+      "stdout_path": "raw/input_dumpsys.stdout.txt",
+      "stdout_sha256": "11f5737109225b8a7675e97d9a1a226e02541e8ef08cb67ac44e8d50209fe568",
+      "timed_out": false
+    },
+    {
+      "command": [
+        "adb",
+        "-s",
+        "<redacted-serial>",
+        "shell",
+        "input.proc_devices"
+      ],
+      "duration_ms": 1,
+      "exit_code": 0,
+      "id": "input.proc_devices",
+      "section": "input",
+      "status": "observed",
+      "stderr_length": 0,
+      "stderr_path": "raw/input_proc_devices.stderr.txt",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_length": 301,
+      "stdout_path": "raw/input_proc_devices.stdout.txt",
+      "stdout_sha256": "5fafa262eb92e6a42e461fa00334cf03bca08bfe358553797536153ecbe709f5",
+      "timed_out": false
+    },
+    {
+      "command": [
+        "adb",
+        "-s",
+        "<redacted-serial>",
+        "shell",
+        "memory.proc_meminfo"
+      ],
+      "duration_ms": 1,
+      "exit_code": 0,
+      "id": "memory.proc_meminfo",
+      "section": "memory",
+      "status": "observed",
+      "stderr_length": 0,
+      "stderr_path": "raw/memory_proc_meminfo.stderr.txt",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_length": 196,
+      "stdout_path": "raw/memory_proc_meminfo.stdout.txt",
+      "stdout_sha256": "67d19da3afefd0110736732e2edd7d12c3af1ea7cd634370ac0f669fad01cd62",
+      "timed_out": false
+    },
+    {
+      "command": [
+        "adb",
+        "-s",
+        "<redacted-serial>",
+        "shell",
+        "memory.proc_swaps"
+      ],
+      "duration_ms": 1,
+      "exit_code": 0,
+      "id": "memory.proc_swaps",
+      "section": "memory",
+      "status": "observed",
+      "stderr_length": 0,
+      "stderr_path": "raw/memory_proc_swaps.stderr.txt",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_length": 188,
+      "stdout_path": "raw/memory_proc_swaps.stdout.txt",
+      "stdout_sha256": "806a45a72a95e8622f6ba34ce3c8b702e07bbd3747f615f47b46f2144cb6eb77",
+      "timed_out": false
+    },
+    {
+      "command": [
+        "adb",
+        "-s",
+        "<redacted-serial>",
+        "shell",
+        "memory.low_ram_property"
+      ],
+      "duration_ms": 1,
+      "exit_code": 0,
+      "id": "memory.low_ram_property",
+      "section": "memory",
+      "status": "observed",
+      "stderr_length": 0,
+      "stderr_path": "raw/memory_low_ram_property.stderr.txt",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_length": 6,
+      "stdout_path": "raw/memory_low_ram_property.stdout.txt",
+      "stdout_sha256": "2ed27c1421e6928dbe13dbfdb5c59e1045b30341fe7ebe05700006bc5ac572c0",
+      "timed_out": false
+    }
+  ],
+  "commands_jsonl_sha256": "8b3340b2b6712792f9e934d24638c3c234d638c28731abefca711aa3e58d60b7",
+  "generated_at": "2026-07-24T18:34:27+00:00",
+  "schema_version": "5.0",
+  "target": {
+    "serial": "<redacted-serial>"
+  },
+  "tool_version": "0.11.0rc1"
+}

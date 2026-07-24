@@ -22,12 +22,16 @@ truth tables and are never inferred from the target.
   "audio": {},
   "battery": {},
   "thermal": {},
-  "storage": {}
+  "storage": {},
+  "network": {},
+  "graphics": {},
+  "input": {},
+  "memory": {}
 }
 ```
 
-`schema_version` must begin with `1.`, `2.`, `3.`, or `4.`. `name` is required. All
-other sections are optional and default to empty reference data.
+`schema_version` must begin with `1.`, `2.`, `3.`, `4.`, or `5.`. `name` is
+required. All other sections are optional and default to empty reference data.
 
 ## Identity and build
 
@@ -177,6 +181,54 @@ partitions, and filesystems never create findings. The rule engine does not
 compare effect UUIDs, storage UUIDs, disk names, or transient client IDs. It
 does not infer battery degradation, thermal design quality, storage health,
 hardware authenticity, performance, or external-service outcomes.
+
+## Phase 5 connectivity and peripheral references
+
+Phase 5 sections are opt-in. Empty or omitted sections remain inventory only,
+and only explicitly present fields are evaluated.
+
+```json
+{
+  "network": {
+    "required_interfaces": ["wlan0"],
+    "allowed_transport_types": ["WIFI", "CELLULAR"],
+    "require_connectivity_service_available": true
+  },
+  "graphics": {
+    "allowed_gles_vendors": ["ARM", "Qualcomm"],
+    "allowed_gles_renderer_patterns": ["Mali-G7\\d+", "Adreno"],
+    "require_surface_flinger_available": true
+  },
+  "input": {
+    "minimum_device_count": 2,
+    "required_device_classes": ["TOUCHSCREEN", "KEYBOARD"]
+  },
+  "memory": {
+    "minimum_total_kb": 4194304,
+    "maximum_total_kb": 16777216,
+    "require_low_ram_flag": false
+  }
+}
+```
+
+Supported network fields are `required_interfaces` (interface names observed
+in `ip link`), `allowed_transport_types` (`CELLULAR`, `WIFI`, `BLUETOOTH`,
+`ETHERNET`, `VPN`, `WIFI_AWARE`, `LOWPAN`, `USB`, or `UNKNOWN`), and
+`require_connectivity_service_available`. Supported graphics fields are
+`allowed_gles_vendors` (exact vendor strings), `allowed_gles_renderer_patterns`
+(validated regular expressions matched against the reported renderer), and
+`require_surface_flinger_available`. Supported input fields are
+`minimum_device_count` and `required_device_classes` (`TOUCHSCREEN`,
+`KEYBOARD`, `MOUSE`, `GAMEPAD`, `BUTTONS`, `ROTARY_ENCODER`, `SWITCH`,
+`VIBRATOR`, or `UNKNOWN`). Supported memory fields are `minimum_total_kb`,
+`maximum_total_kb` (the minimum must not exceed the maximum), and
+`require_low_ram_flag` compared against `ro.config.low_ram`.
+
+Extra interfaces, transports, input devices, and memory fields never create
+findings. The rule engine does not compare SSIDs, MAC or IP addresses, or
+signal state; those values are redacted before persistence. It does not infer
+network quality, GPU capability, input hardware quality, or memory
+performance.
 
 ## Findings
 

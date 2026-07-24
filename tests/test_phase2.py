@@ -484,11 +484,15 @@ def test_capture_skip_flags_omit_all_phase2_commands(monkeypatch, tmp_path) -> N
             skip_battery=True,
             skip_thermal=True,
             skip_storage=True,
+            skip_network=True,
+            skip_graphics=True,
+            skip_input=True,
+            skip_memory=True,
         ),
     ).bundle_path
     manifest = load_evidence_bundle(bundle)
 
-    assert not any(call[0] in {"wm", "dumpsys", "cmd", "command", "su", "mount", "ps", "service", "ls"} for call in calls)
+    assert not any(call[0] in {"wm", "dumpsys", "cmd", "command", "su", "mount", "ps", "service", "ls", "ip", "settings"} for call in calls)
     assert all(state == "not_evaluated" for state in manifest["collector_states"].values())
 
 

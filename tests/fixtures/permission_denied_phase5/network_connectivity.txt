@@ -1,0 +1,1 @@
+Permission Denial: can't dump ConnectivityService from pid=0, uid=2000

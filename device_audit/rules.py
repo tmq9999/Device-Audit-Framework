@@ -15,8 +15,12 @@ from device_audit.models import (
     DisplayInfo,
     ExpectedProfile,
     Finding,
+    GraphicsInventory,
     HalInventory,
+    InputInventory,
     KernelInfo,
+    MemoryInventory,
+    NetworkInventory,
     PackageInfo,
     SensorInventory,
     StorageInventory,
@@ -57,6 +61,10 @@ def evaluate_profile(
     battery: BatteryInventory | None = None,
     thermal: ThermalInventory | None = None,
     storage: StorageInventory | None = None,
+    network: NetworkInventory | None = None,
+    graphics: GraphicsInventory | None = None,
+    input_devices: InputInventory | None = None,
+    memory: MemoryInventory | None = None,
 ) -> list[Finding]:
     """Evaluate only those expectations explicitly declared by a profile."""
 
@@ -75,6 +83,10 @@ def evaluate_profile(
         battery,
         thermal,
         storage,
+        network,
+        graphics,
+        input_devices,
+        memory,
     )
     findings: list[Finding] = []
     for comparison in comparisons:
@@ -104,6 +116,14 @@ def evaluate_profile(
             findings.append(_phase4_finding(comparison, "THERMAL_PROFILE_MISMATCH", "Thermal or power inventory differs from the selected profile's explicit reference."))
         elif comparison.category == "storage":
             findings.append(_phase4_finding(comparison, "STORAGE_PROFILE_MISMATCH", "Storage inventory differs from the selected profile's explicit reference."))
+        elif comparison.category == "network":
+            findings.append(_phase5_finding(comparison, "NETWORK_PROFILE_MISMATCH", "Network and connectivity inventory differs from the selected profile's explicit reference."))
+        elif comparison.category == "graphics":
+            findings.append(_phase5_finding(comparison, "GRAPHICS_PROFILE_MISMATCH", "Graphics inventory differs from the selected profile's explicit reference."))
+        elif comparison.category == "input":
+            findings.append(_phase5_finding(comparison, "INPUT_PROFILE_MISMATCH", "Input-device inventory differs from the selected profile's explicit reference."))
+        elif comparison.category == "memory":
+            findings.append(_phase5_finding(comparison, "MEMORY_PROFILE_MISMATCH", "Memory inventory differs from the selected profile's explicit reference."))
         else:
             findings.append(_property_finding(comparison))
     return findings
@@ -124,6 +144,10 @@ def compare_profile(
     battery: BatteryInventory | None = None,
     thermal: ThermalInventory | None = None,
     storage: StorageInventory | None = None,
+    network: NetworkInventory | None = None,
+    graphics: GraphicsInventory | None = None,
+    input_devices: InputInventory | None = None,
+    memory: MemoryInventory | None = None,
 ) -> list[Comparison]:
     """Return explicit matched, mismatched, or not-evaluated comparison states."""
 
@@ -143,6 +167,10 @@ def compare_profile(
     comparisons.extend(_compare_battery(battery, profile))
     comparisons.extend(_compare_thermal(thermal, profile))
     comparisons.extend(_compare_storage(storage, profile))
+    comparisons.extend(_compare_network(network, profile))
+    comparisons.extend(_compare_graphics(graphics, profile))
+    comparisons.extend(_compare_input(input_devices, profile))
+    comparisons.extend(_compare_memory(memory, profile))
     return comparisons
 
 
@@ -684,6 +712,96 @@ def _compare_storage(storage: StorageInventory | None, profile: ExpectedProfile)
     return comparisons
 
 
+def _compare_network(network: NetworkInventory | None, profile: ExpectedProfile) -> list[Comparison]:
+    comparisons: list[Comparison] = []
+    usable_network = network if network and network.connectivity_service_status != "unavailable" else None
+    if profile.network_required_interfaces:
+        observed = {interface.name for interface in usable_network.interfaces} if usable_network and usable_network.interfaces else None
+        comparisons.append(_required_values_comparison(
+            "network.required_interfaces", "network", profile.network_required_interfaces,
+            observed, ("network.ip_link",),
+        ))
+    if profile.network_allowed_transport_types:
+        comparisons.append(_allowed_comparison(
+            "network.transport_types", "network", list(profile.network_allowed_transport_types),
+            list(usable_network.transport_types) if usable_network and usable_network.transport_types else None,
+            ("network.connectivity",),
+        ))
+    if profile.network_require_connectivity_service_available is not None:
+        comparisons.append(_status_bool_comparison(
+            "network.connectivity_service_available", "network",
+            profile.network_require_connectivity_service_available,
+            network.connectivity_service_status == "available" if network and network.connectivity_service_status is not None else None,
+            ("network.connectivity",),
+        ))
+    return comparisons
+
+
+def _compare_graphics(graphics: GraphicsInventory | None, profile: ExpectedProfile) -> list[Comparison]:
+    comparisons: list[Comparison] = []
+    usable_graphics = graphics if graphics and graphics.surface_flinger_status != "unavailable" else None
+    if profile.graphics_allowed_gles_vendors:
+        comparisons.append(_allowed_comparison(
+            "graphics.gles_vendor", "graphics", list(profile.graphics_allowed_gles_vendors),
+            usable_graphics.gles_vendor if usable_graphics else None, ("graphics.surface_flinger",),
+        ))
+    if profile.graphics_allowed_gles_renderer_patterns:
+        observed = usable_graphics.gles_renderer if usable_graphics else None
+        expected = json.dumps(list(profile.graphics_allowed_gles_renderer_patterns), sort_keys=True)
+        status = "not_evaluated" if not observed else "matched" if any(
+            re.search(pattern, observed) for pattern in profile.graphics_allowed_gles_renderer_patterns
+        ) else "mismatched"
+        comparisons.append(
+            Comparison("graphics.gles_renderer", "graphics", status, expected, observed, ("graphics.surface_flinger",))
+        )
+    if profile.graphics_require_surface_flinger_available is not None:
+        comparisons.append(_status_bool_comparison(
+            "graphics.surface_flinger_available", "graphics",
+            profile.graphics_require_surface_flinger_available,
+            graphics.surface_flinger_status == "available" if graphics and graphics.surface_flinger_status is not None else None,
+            ("graphics.surface_flinger",),
+        ))
+    return comparisons
+
+
+def _compare_input(input_devices: InputInventory | None, profile: ExpectedProfile) -> list[Comparison]:
+    comparisons: list[Comparison] = []
+    usable_input = input_devices if input_devices and input_devices.input_service_status != "unavailable" else None
+    if profile.input_minimum_device_count is not None:
+        comparisons.append(_minimum_comparison(
+            "input.device_count", "input", profile.input_minimum_device_count,
+            usable_input.device_count if usable_input else None,
+            ("input.dumpsys", "input.proc_devices"),
+        ))
+    if profile.input_required_device_classes:
+        observed = {value for device in usable_input.devices for value in device.classes} if usable_input and usable_input.devices else None
+        comparisons.append(_required_values_comparison(
+            "input.required_device_classes", "input", profile.input_required_device_classes,
+            observed, ("input.dumpsys", "input.proc_devices"),
+        ))
+    return comparisons
+
+
+def _compare_memory(memory: MemoryInventory | None, profile: ExpectedProfile) -> list[Comparison]:
+    comparisons: list[Comparison] = []
+    if profile.memory_minimum_total_kb is not None:
+        comparisons.append(_minimum_comparison(
+            "memory.total_kb", "memory", profile.memory_minimum_total_kb,
+            memory.total_kb if memory else None, ("memory.proc_meminfo",),
+        ))
+    if profile.memory_maximum_total_kb is not None:
+        comparisons.append(_maximum_comparison(
+            "memory.maximum_total_kb", "memory", profile.memory_maximum_total_kb,
+            memory.total_kb if memory else None, ("memory.proc_meminfo",),
+        ))
+    if profile.memory_require_low_ram_flag is not None:
+        comparisons.append(_status_bool_comparison(
+            "memory.low_ram_device", "memory", profile.memory_require_low_ram_flag,
+            memory.low_ram_device if memory else None, ("memory.low_ram_property",),
+        ))
+    return comparisons
+
+
 def _minimum_comparison(field: str, category: str, expected: int | float, observed: int | float | None, evidence: tuple[str, ...]) -> Comparison:
     return Comparison(field, category, "not_evaluated" if observed is None else "matched" if observed >= expected else "mismatched", str(expected), str(observed) if observed is not None else None, evidence)
 
@@ -867,4 +985,19 @@ def _phase4_finding(comparison: Comparison, finding_id: str, summary: str) -> Fi
         expected=comparison.expected,
         observed=comparison.observed,
         recommendation="Review the selected profile and observed system inventory before drawing conclusions.",
+    )
+
+
+def _phase5_finding(comparison: Comparison, finding_id: str, summary: str) -> Finding:
+    return Finding(
+        id=finding_id,
+        title="Explicit connectivity or peripheral inventory expectation differs",
+        category=comparison.category,
+        severity="medium",
+        confidence="high",
+        summary=summary,
+        evidence=comparison.evidence,
+        expected=comparison.expected,
+        observed=comparison.observed,
+        recommendation="Review the selected profile and observed connectivity or peripheral inventory before drawing conclusions.",
     )

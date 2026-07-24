@@ -1,0 +1,1 @@
+Permission Denial: can't dump SurfaceFlinger from pid=0, uid=2000

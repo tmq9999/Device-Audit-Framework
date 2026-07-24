@@ -24,8 +24,12 @@ from device_audit.collectors import (
     CAMERA_COMMANDS,
     DEFAULT_PACKAGES,
     DISPLAY_COMMANDS,
+    GRAPHICS_COMMANDS,
     HAL_COMMANDS,
+    INPUT_COMMANDS,
     MAGISK_COMMANDS,
+    MEMORY_COMMANDS,
+    NETWORK_COMMANDS,
     PHASE_ONE_COMMANDS,
     ROOT_RUNTIME_COMMANDS,
     RUNTIME_COMMANDS,
@@ -112,6 +116,10 @@ def test_builtin_collectors_are_uniquely_named_and_cover_current_sections() -> N
         "battery",
         "thermal",
         "storage",
+        "network",
+        "graphics",
+        "input",
+        "memory",
     ]
     assert sections == {
         "transport",
@@ -130,6 +138,10 @@ def test_builtin_collectors_are_uniquely_named_and_cover_current_sections() -> N
         "battery",
         "thermal",
         "storage",
+        "network",
+        "graphics",
+        "input",
+        "memory",
     }
 
 
@@ -153,6 +165,10 @@ def test_frozen_builtin_command_specs_and_default_packages_are_exact() -> None:
         *BATTERY_COMMANDS,
         *THERMAL_COMMANDS,
         *STORAGE_COMMANDS,
+        *NETWORK_COMMANDS,
+        *GRAPHICS_COMMANDS,
+        *INPUT_COMMANDS,
+        *MEMORY_COMMANDS,
     )
 
     assert [(spec.id, spec.section, spec.arguments, spec.timeout_seconds) for spec in specs] == [
@@ -245,6 +261,20 @@ def test_frozen_builtin_command_specs_and_default_packages_are_exact() -> None:
         ("storage.volumes", "storage", ("sm", "list-volumes", "all"), 20),
         ("storage.disks", "storage", ("sm", "list-disks"), 20),
         ("storage.primary_uuid", "storage", ("sm", "get-primary-storage-uuid"), 10),
+        ("network.connectivity", "network", ("dumpsys", "connectivity"), 30),
+        ("network.ip_link", "network", ("ip", "link"), 15),
+        ("network.wifi_status", "network", ("cmd", "wifi", "status"), 15),
+        ("network.airplane_mode", "network", ("settings", "get", "global", "airplane_mode_on"), 10),
+        ("network.bluetooth_state", "network", ("settings", "get", "global", "bluetooth_on"), 10),
+        ("graphics.surface_flinger", "graphics", ("dumpsys", "SurfaceFlinger"), 30),
+        ("graphics.gpu", "graphics", ("dumpsys", "gpu"), 20),
+        ("graphics.egl_property", "graphics", ("getprop", "ro.hardware.egl"), 10),
+        ("graphics.vulkan_property", "graphics", ("getprop", "ro.hardware.vulkan"), 10),
+        ("input.dumpsys", "input", ("dumpsys", "input"), 30),
+        ("input.proc_devices", "input", ("cat", "/proc/bus/input/devices"), 15),
+        ("memory.proc_meminfo", "memory", ("cat", "/proc/meminfo"), 10),
+        ("memory.proc_swaps", "memory", ("cat", "/proc/swaps"), 10),
+        ("memory.low_ram_property", "memory", ("getprop", "ro.config.low_ram"), 10),
     ]
     assert DEFAULT_PACKAGES == (
         "android",
@@ -290,6 +320,10 @@ def test_frozen_cli_commands_and_flags_are_exact() -> None:
         "--skip-battery",
         "--skip-thermal",
         "--skip-storage",
+        "--skip-network",
+        "--skip-graphics",
+        "--skip-input",
+        "--skip-memory",
         "--package",
         "--profile",
     }
@@ -312,6 +346,10 @@ def test_frozen_cli_commands_and_flags_are_exact() -> None:
         "--skip-battery",
         "--skip-thermal",
         "--skip-storage",
+        "--skip-network",
+        "--skip-graphics",
+        "--skip-input",
+        "--skip-memory",
         "--package",
     }
     assert _option_strings(subparsers.choices["analyze"]) == {

@@ -1,0 +1,6 @@
+1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc mq state UNKNOWN mode DEFAULT group default qlen 1000
+    link/loopback <redacted-mac> brd <redacted-mac>
+2: wlan0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc mq state UP mode DEFAULT group default qlen 1000
+    link/ether <redacted-mac> brd <redacted-mac>
+3: rmnet_data0: <UP,LOWER_UP> mtu 1500 qdisc mq state UNKNOWN mode DEFAULT group default qlen 1000
+    link/rawip

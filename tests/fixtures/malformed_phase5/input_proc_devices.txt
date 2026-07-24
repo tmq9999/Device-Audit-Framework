@@ -1,0 +1,3 @@
+I: Bus=0018 Vendor=9999 Product=8888 Version=0100
+P: Phys=broken/input0
+H: Handlers=event9

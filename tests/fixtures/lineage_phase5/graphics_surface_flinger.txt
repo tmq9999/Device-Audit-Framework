@@ -1,0 +1,5 @@
+SurfaceFlinger global state:
+GLES: Qualcomm, Adreno (TM) 530, OpenGL ES 3.2 V@0530.0
+Vulkan API version: 1.1.128
+Display 4619827259835644672 HWC layers:
+  numHwLayers=4, flags=00000000

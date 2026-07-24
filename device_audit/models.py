@@ -447,6 +447,88 @@ class StorageInventory:
 
 
 @dataclass(frozen=True)
+class NetworkInterface:
+    """One bounded network-interface observation without addresses."""
+
+    name: str
+    state: str | None
+    mtu: int | None
+    flags: tuple[str, ...]
+    link_type: str | None
+    source: str
+
+
+@dataclass(frozen=True)
+class NetworkInventory:
+    """Read-only connectivity inventory with identifiers redacted before persistence."""
+
+    connectivity_service_status: str | None
+    active_network_count: int | None
+    transport_types: tuple[str, ...]
+    interfaces: tuple[NetworkInterface, ...]
+    wifi_service_status: str | None
+    wifi_enabled: bool | None
+    airplane_mode_enabled: bool | None
+    bluetooth_enabled: bool | None
+    parse_warnings: tuple[str, ...]
+
+
+@dataclass(frozen=True)
+class GraphicsInventory:
+    """Observable GPU and rendering inventory without running graphics work."""
+
+    surface_flinger_status: str | None
+    gles_vendor: str | None
+    gles_renderer: str | None
+    gles_version: str | None
+    egl_hardware: str | None
+    vulkan_hardware: str | None
+    vulkan_api_version: str | None
+    parse_warnings: tuple[str, ...]
+
+
+@dataclass(frozen=True)
+class InputDevice:
+    """One normalized input-device observation."""
+
+    id: str | None
+    name: str
+    vendor_id: str | None
+    product_id: str | None
+    bus: str | None
+    classes: tuple[str, ...]
+    external: bool | None
+    source: str
+
+
+@dataclass(frozen=True)
+class InputInventory:
+    """Read-only input-device inventory without injecting or sampling events."""
+
+    input_service_status: str | None
+    device_count: int
+    devices: tuple[InputDevice, ...]
+    keyboard_count: int
+    touchscreen_count: int
+    parse_warnings: tuple[str, ...]
+
+
+@dataclass(frozen=True)
+class MemoryInventory:
+    """Observable memory and swap totals without benchmarks or pressure tests."""
+
+    total_kb: int | None
+    free_kb: int | None
+    available_kb: int | None
+    swap_total_kb: int | None
+    swap_free_kb: int | None
+    swap_device_count: int | None
+    zram_swap_present: bool | None
+    low_ram_device: bool | None
+    parse_warnings: tuple[str, ...]
+
+
+@dataclass(frozen=True)
 class PackageExpectation:
     """Explicit profile expectations for one package."""
 
@@ -512,6 +594,17 @@ class ExpectedProfile:
     storage_minimum_data_available_kb: int | None = None
     storage_allowed_volume_types: tuple[str, ...] = ()
     storage_require_mount_service_available: bool | None = None
+    network_required_interfaces: tuple[str, ...] = ()
+    network_allowed_transport_types: tuple[str, ...] = ()
+    network_require_connectivity_service_available: bool | None = None
+    graphics_allowed_gles_vendors: tuple[str, ...] = ()
+    graphics_allowed_gles_renderer_patterns: tuple[str, ...] = ()
+    graphics_require_surface_flinger_available: bool | None = None
+    input_minimum_device_count: int | None = None
+    input_required_device_classes: tuple[str, ...] = ()
+    memory_minimum_total_kb: int | None = None
+    memory_maximum_total_kb: int | None = None
+    memory_require_low_ram_flag: bool | None = None
 
 
 @dataclass(frozen=True)

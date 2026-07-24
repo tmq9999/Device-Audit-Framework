@@ -1,0 +1,4 @@
+SurfaceFlinger global state:
+GLES: Google (NVIDIA Corporation), Android Emulator OpenGL ES Translator (NVIDIA GeForce RTX 3080), OpenGL ES 3.0 (4.5.0 NVIDIA 535.104.05)
+Display 4619827259835644672 HWC layers:
+  numHwLayers=4, flags=00000000

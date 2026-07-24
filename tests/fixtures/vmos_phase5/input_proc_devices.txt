@@ -1,0 +1,5 @@
+I: Bus=0006 Vendor=0000 Product=0000 Version=0100
+N: Name="VirtualTouch"
+P: Phys=synthetic/input0
+H: Handlers=event0
+B: ABS=661800000000000

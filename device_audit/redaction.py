@@ -42,6 +42,11 @@ _CONTEXTUAL_PHASE4_IDENTIFIER_PATTERN = re.compile(
     r"binder client(?: id)?|client token)\b\s*[:=]\s*)([^\s,;]+)"
 )
 _CONTEXTUAL_PROCESS_IDENTIFIER_PATTERN = re.compile(r"(?im)(\b(?:pid|uid)\b\s*:\s*)(\d+)")
+_WIRELESS_IDENTIFIER_PATTERN = re.compile(
+    r"(?im)(\b(?:b?ssid|network[ _-]?id|wifi[ _-]?network[ _-]?name)\b\s*[:=]\s*)(\"[^\"\r\n]*\"|[^\s,;\]]+)"
+)
+_LINK_ADDRESSES_PATTERN = re.compile(r"(?im)(\blink ?addresses?\b\s*[:=]?\s*\[?)([^\]\r\n]*)(\]?)")
+_INET_ADDRESS_PATTERN = re.compile(r"(?im)(^\s*inet6?\s+)([0-9a-f:.]+(?:/\d+)?)")
 
 
 def redact_text(text: str, sensitive_values: Iterable[str] = ()) -> str:
@@ -61,7 +66,10 @@ def redact_text(text: str, sensitive_values: Iterable[str] = ()) -> str:
     without_android_users = _ANDROID_USER_PATH_PATTERN.sub(r"\1<redacted-user>", without_private_paths)
     without_phase4_ids = _CONTEXTUAL_PHASE4_IDENTIFIER_PATTERN.sub(r"\1<redacted>", without_android_users)
     without_process_ids = _CONTEXTUAL_PROCESS_IDENTIFIER_PATTERN.sub(r"\1<redacted>", without_phase4_ids)
-    redacted = _LABELED_IDENTIFIER_PATTERN.sub(r"\1<redacted>", without_process_ids)
+    without_wireless_ids = _WIRELESS_IDENTIFIER_PATTERN.sub(r"\1<redacted>", without_process_ids)
+    without_link_addresses = _LINK_ADDRESSES_PATTERN.sub(r"\1<redacted>\3", without_wireless_ids)
+    without_inet_addresses = _INET_ADDRESS_PATTERN.sub(r"\1<redacted-ip>", without_link_addresses)
+    redacted = _LABELED_IDENTIFIER_PATTERN.sub(r"\1<redacted>", without_inet_addresses)
     for value in sorted({value for value in sensitive_values if value}, key=len, reverse=True):
         redacted = redacted.replace(value, "<redacted-serial>")
     return redacted

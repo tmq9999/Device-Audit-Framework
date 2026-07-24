@@ -1,0 +1,9 @@
+Connectivity service status: available
+Networks: 2
+NetworkAgentInfo [WIFI () - 100]
+  Transports: WIFI
+  LinkAddresses: [ 192.168.0.11/24 ]
+  SSID: "SyntheticOfficeNet"
+NetworkAgentInfo [MOBILE () - 101]
+  Transports: CELLULAR
+  LinkAddresses: [ 10.112.4.2/30 ]

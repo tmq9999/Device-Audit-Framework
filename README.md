@@ -1,6 +1,6 @@
 # Device Audit Framework
 
-A read-only Android research CLI that captures redacted ADB evidence, replays it offline, and evaluates only explicitly selected profile expectations. Phase 4 adds bounded audio, battery, thermal/power, and storage inventory on top of the frozen Phase 1-3 collectors; it does not infer commercial-device identity or analyze attestation services.
+A read-only Android research CLI that captures redacted ADB evidence, replays it offline, and evaluates only explicitly selected profile expectations. Phase 5 adds bounded network/connectivity, graphics, input-device, and memory inventory on top of the frozen Phase 1-4 collectors; it does not infer commercial-device identity or analyze attestation services.
 
 The framework inventories observable evidence. It does not modify the Android device, predict external-service outcomes, or turn an unreferenced difference into a mismatch.
 
@@ -108,6 +108,10 @@ The explicit equivalent is `python device_audit.py audit ...`.
 --skip-battery
 --skip-thermal
 --skip-storage
+--skip-network
+--skip-graphics
+--skip-input
+--skip-memory
 --package PACKAGE
 ```
 
@@ -172,13 +176,17 @@ run_001/
     ├── camera_media_camera.stdout.txt
     ├── sensors_sensorservice.stdout.txt
     ├── hal_lshal.stdout.txt
+    ├── network_connectivity.stdout.txt
+    ├── graphics_surface_flinger.stdout.txt
+    ├── input_dumpsys.stdout.txt
+    ├── memory_proc_meminfo.stdout.txt
     └── ...
 ```
 
-Evidence bundle schema `4.0` adds audio, battery, thermal, and storage
-collector-state metadata while retaining the Phase 1-3 command and artifact
+Evidence bundle schema `5.0` adds network, graphics, input, and memory
+collector-state metadata while retaining the Phase 1-4 command and artifact
 format. The offline reader continues to accept verified schema `1.0`, `2.0`,
-and `3.0` bundles.
+`3.0`, and `4.0` bundles.
 `evidence.json` records the bundle schema, redacted command metadata,
 artifact paths, SHA-256 digests, and an overall bundle digest. Analysis rejects
 missing, modified, malformed, undeclared, or path-escaping artifacts.
@@ -255,6 +263,39 @@ mount, available-space, volume-type, and mount-service references. Audio is
 metadata-only (no playback or recording), battery data is not degradation
 analysis, thermal collection performs no load generation, and storage performs
 no writes or benchmarks. Extra inventory never creates a mismatch.
+
+Phase 5 adds optional `network`, `graphics`, `input`, and `memory` references:
+
+```json
+{
+  "network": {
+    "required_interfaces": ["wlan0"],
+    "allowed_transport_types": ["WIFI", "CELLULAR"],
+    "require_connectivity_service_available": true
+  },
+  "graphics": {
+    "allowed_gles_vendors": ["ARM"],
+    "allowed_gles_renderer_patterns": ["Mali-G7\\d+"],
+    "require_surface_flinger_available": true
+  },
+  "input": {
+    "minimum_device_count": 2,
+    "required_device_classes": ["TOUCHSCREEN", "KEYBOARD"]
+  },
+  "memory": {
+    "minimum_total_kb": 4194304,
+    "maximum_total_kb": 16777216,
+    "require_low_ram_flag": false
+  }
+}
+```
+
+Every Phase 5 field is optional and omitted fields remain inventory only.
+Network collection never joins, scans, or probes networks; interface addresses,
+SSIDs, and MAC addresses are redacted before persistence. Graphics collection
+reads reported GLES/Vulkan identity without rendering. Input collection reads
+device identity without sampling or injecting events. Memory collection reads
+`/proc` totals without benchmarks or pressure tests.
 
 No aggregate consistency, stealth, bypass, integrity, eligibility, or detection score is calculated. The tool does not predict Play Integrity, Google One, or any other external-service behavior.
 
@@ -345,6 +386,20 @@ adb -s SERIAL shell dumpsys mount
 adb -s SERIAL shell sm list-volumes all
 adb -s SERIAL shell sm list-disks
 adb -s SERIAL shell sm get-primary-storage-uuid
+adb -s SERIAL shell dumpsys connectivity
+adb -s SERIAL shell ip link
+adb -s SERIAL shell cmd wifi status
+adb -s SERIAL shell settings get global airplane_mode_on
+adb -s SERIAL shell settings get global bluetooth_on
+adb -s SERIAL shell dumpsys SurfaceFlinger
+adb -s SERIAL shell dumpsys gpu
+adb -s SERIAL shell getprop ro.hardware.egl
+adb -s SERIAL shell getprop ro.hardware.vulkan
+adb -s SERIAL shell dumpsys input
+adb -s SERIAL shell cat /proc/bus/input/devices
+adb -s SERIAL shell cat /proc/meminfo
+adb -s SERIAL shell cat /proc/swaps
+adb -s SERIAL shell getprop ro.config.low_ram
 ```
 
 Root-gated commands execute only after `command -v su` and `su -c id` successfully establish UID 0. They are bounded read-only inventory commands; the tool does not recurse through `/data/adb` or read module files.

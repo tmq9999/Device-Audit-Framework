@@ -9,13 +9,15 @@ links; it is not a current product specification.
 
 Device Audit Framework v0.11.0-rc.1 is a read-only, profile-driven research CLI. It
 contains the frozen Phase 1/2 collectors, focused Phase 3 hardware inventory,
-and focused Phase 4 system inventory collectors:
+focused Phase 4 system inventory, and focused Phase 5 connectivity and
+peripheral inventory collectors:
 
 - transport, properties, kernel, and native CPU inventory;
 - display, telephony, package, Google Play services, Magisk, and runtime
   inventory;
-- bounded camera, sensor, HAL, and native-service inventory; and
-- bounded audio, battery, thermal/power, and storage inventory; and
+- bounded camera, sensor, HAL, and native-service inventory;
+- bounded audio, battery, thermal/power, and storage inventory;
+- bounded network, graphics, input-device, and memory inventory; and
 - offline bundle replay and explicit-profile comparison.
 
 It does not add Android commands beyond the documented whitelist, alter a
@@ -29,7 +31,7 @@ scores.
   redaction, and safety guarantees.
 - `docs/ARCHITECTURE.md` defines module boundaries and collector orchestration.
 - `docs/BUNDLE_FORMAT.md` defines evidence bundle schemas `1.0`, `2.0`,
-  `3.0`, and `4.0`.
+  `3.0`, `4.0`, and `5.0`.
 - `docs/PROFILE_SCHEMA.md` defines explicit reference profiles.
 - `docs/COLLECTOR_API.md` defines the stable collector API and its limitations.
 - `docs/RULE_ENGINE.md` defines inventory and profile-driven finding behavior.

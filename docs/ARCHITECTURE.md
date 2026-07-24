@@ -24,8 +24,9 @@ different host.
   bounded `CommandSpec` objects, shared collector context, result values, and
   ordered registry.
 - `device_audit.collectors.builtin` contains the frozen Phase 1/2 groups,
-  bounded Phase 3 `camera`, `sensors`, and `hal` groups, and additive Phase 4
-  `audio`, `battery`, `thermal`, and `storage` groups. It is the
+  bounded Phase 3 `camera`, `sensors`, and `hal` groups, additive Phase 4
+  `audio`, `battery`, `thermal`, and `storage` groups, and additive Phase 5
+  `network`, `graphics`, `input`, and `memory` groups. It is the
   authoritative command whitelist for the branch.
 - `device_audit.capture` performs discovery, readiness checks, registry
   orchestration, and bundle persistence.
@@ -56,17 +57,17 @@ This keeps the command whitelist auditable and reproducible.
 
 - Host subprocesses use argument lists and `shell=False`.
 - Every target shell command is run with the selected serial.
-- The Android command set is frozen for this Phase 4 milestone; no collector
-  outside the documented Phase 1-4 inventory groups is included.
+- The Android command set is frozen for this Phase 5 milestone; no collector
+  outside the documented Phase 1-5 inventory groups is included.
 - Root-gated commands run only after a successful read-only UID 0 probe.
 - Collection errors become evidence states and do not discard successful
   sections; unexpected plugin exceptions are recorded and later collectors
   continue.
 - Reports contain compact parsed observations, never full raw dumps.
-- Camera, sensor, HAL, audio, battery, thermal, and storage summaries are
-  bounded and deterministically ordered; complete redacted command output
-  remains available only in raw artifacts.
-- Unsupported Phase 3/4 commands are recorded as evidence and do not abort other
-  collectors.
+- Camera, sensor, HAL, audio, battery, thermal, storage, network, graphics,
+  input, and memory summaries are bounded and deterministically ordered;
+  complete redacted command output remains available only in raw artifacts.
+- Unsupported Phase 3/4/5 commands are recorded as evidence and do not abort
+  other collectors.
 - The framework never calculates stealth, bypass, integrity, eligibility, or
   detection scores and never predicts external-service outcomes.

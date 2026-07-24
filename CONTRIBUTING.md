@@ -36,8 +36,8 @@ update the expected digest and the semantic assertion in the same change.
 
 ## Safety and scope
 
-- Phase 4 is limited to the existing `audio`, `battery`, `thermal`, and
-  `storage` additions on top of the frozen Phase 1-3 collectors. Do not add
+- Phase 5 is limited to the existing `network`, `graphics`, `input`, and
+  `memory` additions on top of the frozen Phase 1-4 collectors. Do not add
   other Android collectors or whitelist entries in this milestone.
 - Do not use `shell=True` or interpolate values into host commands.
 - Keep target commands serial-explicit and read-only.
@@ -48,9 +48,9 @@ update the expected digest and the semantic assertion in the same change.
 
 ## Compatibility
 
-Preserve Phase 1-3 bundle schemas (`1.0`, `2.0`, and `3.0`) and existing
-command IDs; Phase 4 uses schema `4.0`. New fields must be optional for older
-bundles. Offline analysis must remain deterministic and semantically
+Preserve Phase 1-4 bundle schemas (`1.0`, `2.0`, `3.0`, and `4.0`) and
+existing command IDs; Phase 5 uses schema `5.0`. New fields must be optional
+for older bundles. Offline analysis must remain deterministic and semantically
 equivalent to the composed audit for the same bundle and profile. Unsupported
 commands and collector failures must remain recorded rather than aborting
 collection.
@@ -58,7 +58,10 @@ collection.
 Audio collection is metadata-only; do not play or record audio. Battery
 inventory is not degradation analysis. Thermal collection must not generate
 load or change power state. Storage collection must not write, benchmark,
-repair, mount, unmount, or format storage.
+repair, mount, unmount, or format storage. Network collection must not join,
+scan, toggle, or probe networks. Graphics collection must not render or
+benchmark. Input collection must not sample or inject events. Memory
+collection must not run benchmarks or apply memory pressure.
 
 ## Pull requests
 

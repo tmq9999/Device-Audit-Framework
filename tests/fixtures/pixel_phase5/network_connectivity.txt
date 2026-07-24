@@ -1,0 +1,9 @@
+Connectivity service status: available
+Networks: 2
+NetworkAgentInfo [WIFI () - 100]
+  Transports: WIFI
+  LinkAddresses: [ 192.168.50.23/24, fe80::1234:5678:9abc:def0/64 ]
+  SSID: "SyntheticHomeNet"
+NetworkAgentInfo [MOBILE () - 101]
+  Transports: CELLULAR
+  LinkAddresses: [ 10.64.22.7/30 ]

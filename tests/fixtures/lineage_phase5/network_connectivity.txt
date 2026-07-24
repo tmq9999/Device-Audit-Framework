@@ -1,0 +1,6 @@
+Connectivity service status: available
+Networks: 1
+NetworkAgentInfo [WIFI () - 100]
+  Transports: WIFI
+  LinkAddresses: [ 192.168.10.42/24 ]
+  SSID: "Mạng thử nghiệm"

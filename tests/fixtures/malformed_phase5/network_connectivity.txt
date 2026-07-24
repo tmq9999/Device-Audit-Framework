@@ -1,0 +1,3 @@
+Connectivity garbage header
+Transports: ???
+Networks: many
