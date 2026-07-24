@@ -1,0 +1,11 @@
+I: Bus=0018 Vendor=0483 Product=0001 Version=0100
+N: Name="Cảm ứng tổng hợp"
+P: Phys=synthetic/input0
+H: Handlers=event3
+B: ABS=661800000000000
+
+I: Bus=0019 Vendor=0001 Product=0001 Version=0100
+N: Name="gpio-keys"
+P: Phys=synthetic/input0
+H: Handlers=kbd event0
+B: KEY=1c0000000000000

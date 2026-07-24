@@ -36,7 +36,7 @@ def profile_from_mapping(payload: Any) -> ExpectedProfile:
     if not isinstance(payload, dict):
         raise ProfileValidationError("profile root must be an object")
     schema_version = _required_string(payload, "schema_version")
-    if not schema_version.startswith(("1.", "2.", "3.", "4.")):
+    if not schema_version.startswith(("1.", "2.", "3.", "4.", "5.")):
         raise ProfileValidationError(f"unsupported profile schema_version: {schema_version}")
     name = _required_string(payload, "name")
     identity = _string_mapping(payload.get("identity", {}), "identity")
@@ -262,6 +262,70 @@ def profile_from_mapping(payload: Any) -> ExpectedProfile:
         raise ProfileValidationError("storage.allowed_volume_types contains an invalid volume type")
     storage_require_service = _optional_bool(storage.get("require_mount_service_available"), "storage.require_mount_service_available")
 
+    network = payload.get("network", {})
+    if not isinstance(network, dict):
+        raise ProfileValidationError("network must be an object")
+    network_interfaces = _string_list(network.get("required_interfaces", []), "network.required_interfaces")
+    network_transports = tuple(
+        value.upper()
+        for value in _string_list(network.get("allowed_transport_types", []), "network.allowed_transport_types")
+    )
+    if any(
+        value not in {"CELLULAR", "WIFI", "BLUETOOTH", "ETHERNET", "VPN", "WIFI_AWARE", "LOWPAN", "USB", "UNKNOWN"}
+        for value in network_transports
+    ):
+        raise ProfileValidationError("network.allowed_transport_types contains an invalid transport")
+    network_require_service = _optional_bool(
+        network.get("require_connectivity_service_available"), "network.require_connectivity_service_available"
+    )
+
+    graphics = payload.get("graphics", {})
+    if not isinstance(graphics, dict):
+        raise ProfileValidationError("graphics must be an object")
+    graphics_vendors = _string_list(graphics.get("allowed_gles_vendors", []), "graphics.allowed_gles_vendors")
+    graphics_renderer_patterns = _string_list(
+        graphics.get("allowed_gles_renderer_patterns", []), "graphics.allowed_gles_renderer_patterns"
+    )
+    for pattern in graphics_renderer_patterns:
+        try:
+            re.compile(pattern)
+        except re.error as error:
+            raise ProfileValidationError(
+                f"graphics.allowed_gles_renderer_patterns contains invalid regex: {error}"
+            ) from error
+    graphics_require_service = _optional_bool(
+        graphics.get("require_surface_flinger_available"), "graphics.require_surface_flinger_available"
+    )
+
+    input_section = payload.get("input", {})
+    if not isinstance(input_section, dict):
+        raise ProfileValidationError("input must be an object")
+    input_minimum_devices = _optional_nonnegative_int(
+        input_section.get("minimum_device_count"), "input.minimum_device_count"
+    )
+    input_required_classes = tuple(
+        value.upper()
+        for value in _string_list(input_section.get("required_device_classes", []), "input.required_device_classes")
+    )
+    if any(
+        value not in {"TOUCHSCREEN", "KEYBOARD", "MOUSE", "GAMEPAD", "BUTTONS", "ROTARY_ENCODER", "SWITCH", "VIBRATOR", "UNKNOWN"}
+        for value in input_required_classes
+    ):
+        raise ProfileValidationError("input.required_device_classes contains an invalid class")
+
+    memory = payload.get("memory", {})
+    if not isinstance(memory, dict):
+        raise ProfileValidationError("memory must be an object")
+    memory_minimum_total = _optional_nonnegative_int(memory.get("minimum_total_kb"), "memory.minimum_total_kb")
+    memory_maximum_total = _optional_nonnegative_int(memory.get("maximum_total_kb"), "memory.maximum_total_kb")
+    if (
+        memory_minimum_total is not None
+        and memory_maximum_total is not None
+        and memory_minimum_total > memory_maximum_total
+    ):
+        raise ProfileValidationError("memory.minimum_total_kb must not exceed memory.maximum_total_kb")
+    memory_require_low_ram = _optional_bool(memory.get("require_low_ram_flag"), "memory.require_low_ram_flag")
+
     return ExpectedProfile(
         schema_version=schema_version,
         name=name,
@@ -315,6 +379,17 @@ def profile_from_mapping(payload: Any) -> ExpectedProfile:
         storage_minimum_data_available_kb=storage_minimum_available,
         storage_allowed_volume_types=storage_volume_types,
         storage_require_mount_service_available=storage_require_service,
+        network_required_interfaces=network_interfaces,
+        network_allowed_transport_types=network_transports,
+        network_require_connectivity_service_available=network_require_service,
+        graphics_allowed_gles_vendors=graphics_vendors,
+        graphics_allowed_gles_renderer_patterns=graphics_renderer_patterns,
+        graphics_require_surface_flinger_available=graphics_require_service,
+        input_minimum_device_count=input_minimum_devices,
+        input_required_device_classes=input_required_classes,
+        memory_minimum_total_kb=memory_minimum_total,
+        memory_maximum_total_kb=memory_maximum_total,
+        memory_require_low_ram_flag=memory_require_low_ram,
     )
 
 

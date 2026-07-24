@@ -1,0 +1,9 @@
+Connectivity service status: available
+Networks: 2
+NetworkAgentInfo [WIFI () - 100]
+  Transports: WIFI
+  LinkAddresses: [<redacted>]
+  SSID: <redacted>
+NetworkAgentInfo [MOBILE () - 101]
+  Transports: CELLULAR
+  LinkAddresses: [<redacted>]

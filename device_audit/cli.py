@@ -125,6 +125,10 @@ def _add_capture_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--skip-battery", action="store_true", help="Skip battery and charging inventory")
     parser.add_argument("--skip-thermal", action="store_true", help="Skip thermal and power inventory")
     parser.add_argument("--skip-storage", action="store_true", help="Skip read-only storage inventory")
+    parser.add_argument("--skip-network", action="store_true", help="Skip read-only connectivity inventory")
+    parser.add_argument("--skip-graphics", action="store_true", help="Skip GPU and rendering inventory")
+    parser.add_argument("--skip-input", action="store_true", help="Skip input-device inventory")
+    parser.add_argument("--skip-memory", action="store_true", help="Skip memory and swap inventory")
     parser.add_argument(
         "--package",
         action="append",
@@ -168,5 +172,9 @@ def _capture_options(namespace: argparse.Namespace) -> CaptureOptions:
         skip_battery=namespace.skip_battery,
         skip_thermal=namespace.skip_thermal,
         skip_storage=namespace.skip_storage,
+        skip_network=namespace.skip_network,
+        skip_graphics=namespace.skip_graphics,
+        skip_input=namespace.skip_input,
+        skip_memory=namespace.skip_memory,
         packages=tuple(namespace.package),
     )

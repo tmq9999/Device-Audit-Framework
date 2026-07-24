@@ -1,7 +1,7 @@
 """Stable read-only collector plugin contracts.
 
 The v1 API deliberately exposes command specifications rather than a raw shell
-escape hatch. Built-in collectors are the only collectors shipped by v0.11.0rc1;
+escape hatch. Built-in collectors are the only collectors shipped by v0.12.0rc1;
 future plugins must still be reviewed against the project command whitelist.
 """
 

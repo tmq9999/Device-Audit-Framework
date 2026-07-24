@@ -1,0 +1,9 @@
+Input Manager State:
+  Device 1: virtio_input_multi_touch_1
+    Classes: TOUCH | TOUCH_MT
+    Identifier: bus=0x0006, vendor=0x0000, product=0x0000
+    isExternal: false
+  Device 2: qwerty2
+    Classes: KEYBOARD | ALPHAKEY
+    Identifier: bus=0x0006, vendor=0x0000, product=0x0000
+    isExternal: false

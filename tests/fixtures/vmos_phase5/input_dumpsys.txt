@@ -1,0 +1,5 @@
+Input Manager State:
+  Device 1: VirtualTouch
+    Classes: TOUCH
+    Identifier: bus=0x0006, vendor=0x0000, product=0x0000
+    isExternal: false

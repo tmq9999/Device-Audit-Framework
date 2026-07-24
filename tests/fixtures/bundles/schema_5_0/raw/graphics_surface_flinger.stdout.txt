@@ -1,0 +1,5 @@
+SurfaceFlinger global state:
+GLES: ARM, Mali-G715-Immortalis MC11, OpenGL ES 3.2 v1.r44p1-01eac0
+Vulkan API version: 1.3.264
+Display 4619827259835644672 HWC layers:
+  numHwLayers=4, flags=00000000

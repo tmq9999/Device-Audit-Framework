@@ -1,4 +1,4 @@
-"""Frozen Phase 1-3 collectors plus additive Phase 4 system inventory."""
+"""Frozen Phase 1-4 collectors plus additive Phase 5 connectivity and peripheral inventory."""
 
 from __future__ import annotations
 
@@ -185,6 +185,47 @@ STORAGE_COMMANDS = (
     ),
 )
 
+NETWORK_COMMANDS = (
+    CommandSpec("network.connectivity", "network", ("dumpsys", "connectivity"), 30),
+    CommandSpec("network.ip_link", "network", ("ip", "link"), 15),
+    CommandSpec("network.wifi_status", "network", ("cmd", "wifi", "status"), 15),
+    CommandSpec(
+        "network.airplane_mode",
+        "network",
+        ("settings", "get", "global", "airplane_mode_on"),
+        10,
+    ),
+    CommandSpec(
+        "network.bluetooth_state",
+        "network",
+        ("settings", "get", "global", "bluetooth_on"),
+        10,
+    ),
+)
+
+GRAPHICS_COMMANDS = (
+    CommandSpec("graphics.surface_flinger", "graphics", ("dumpsys", "SurfaceFlinger"), 30),
+    CommandSpec("graphics.gpu", "graphics", ("dumpsys", "gpu"), 20),
+    CommandSpec("graphics.egl_property", "graphics", ("getprop", "ro.hardware.egl"), 10),
+    CommandSpec(
+        "graphics.vulkan_property",
+        "graphics",
+        ("getprop", "ro.hardware.vulkan"),
+        10,
+    ),
+)
+
+INPUT_COMMANDS = (
+    CommandSpec("input.dumpsys", "input", ("dumpsys", "input"), 30),
+    CommandSpec("input.proc_devices", "input", ("cat", "/proc/bus/input/devices"), 15),
+)
+
+MEMORY_COMMANDS = (
+    CommandSpec("memory.proc_meminfo", "memory", ("cat", "/proc/meminfo"), 10),
+    CommandSpec("memory.proc_swaps", "memory", ("cat", "/proc/swaps"), 10),
+    CommandSpec("memory.low_ram_property", "memory", ("getprop", "ro.config.low_ram"), 10),
+)
+
 DEFAULT_PACKAGES = (
     "android",
     "com.google.android.gms",
@@ -351,6 +392,10 @@ BUILTIN_COLLECTORS = cast(
     _OptionalCommandCollector("battery", ("battery",), BATTERY_COMMANDS),
     _OptionalCommandCollector("thermal", ("thermal",), THERMAL_COMMANDS),
     _OptionalCommandCollector("storage", ("storage",), STORAGE_COMMANDS),
+    _OptionalCommandCollector("network", ("network",), NETWORK_COMMANDS),
+    _OptionalCommandCollector("graphics", ("graphics",), GRAPHICS_COMMANDS),
+    _OptionalCommandCollector("input", ("input",), INPUT_COMMANDS),
+    _OptionalCommandCollector("memory", ("memory",), MEMORY_COMMANDS),
     ),
 )
 

@@ -19,9 +19,13 @@ from device_audit.models import (
     CpuTopology,
     DisplayInfo,
     Finding,
+    GraphicsInventory,
     HalInventory,
+    InputInventory,
     KernelInfo,
     MagiskInfo,
+    MemoryInventory,
+    NetworkInventory,
     PackageInfo,
     RuntimeMarkers,
     SensorInventory,
@@ -35,10 +39,14 @@ from device_audit.parsers import (
     parse_battery_info,
     parse_cpuinfo,
     parse_display_info,
+    parse_graphics_info,
     parse_hal_info,
     parse_getprop,
+    parse_input_info,
     parse_kernel_info,
     parse_magisk_info,
+    parse_memory_info,
+    parse_network_info,
     parse_online_cpu_count,
     parse_package_info,
     parse_runtime_markers,
@@ -102,6 +110,10 @@ def analyze_bundle(
     battery, battery_status = _parse_battery(bundle_dir, commands, collector_states)
     thermal, thermal_status = _parse_thermal(bundle_dir, commands, collector_states)
     storage, storage_status = _parse_storage(bundle_dir, commands, properties, collector_states)
+    network, network_status = _parse_network(bundle_dir, commands, collector_states)
+    graphics, graphics_status = _parse_graphics(bundle_dir, commands, collector_states)
+    input_devices, input_status = _parse_input(bundle_dir, commands, collector_states)
+    memory, memory_status = _parse_memory(bundle_dir, commands, collector_states)
 
     profile = load_profile(profile_path) if profile_path else None
     comparisons = tuple(
@@ -120,6 +132,10 @@ def analyze_bundle(
             battery if battery_status == "observed" else None,
             thermal if thermal_status == "observed" else None,
             storage if storage_status == "observed" else None,
+            network if network_status == "observed" else None,
+            graphics if graphics_status == "observed" else None,
+            input_devices if input_status == "observed" else None,
+            memory if memory_status == "observed" else None,
         )
     )
     findings = tuple(
@@ -138,6 +154,10 @@ def analyze_bundle(
             battery if battery_status == "observed" else None,
             thermal if thermal_status == "observed" else None,
             storage if storage_status == "observed" else None,
+            network if network_status == "observed" else None,
+            graphics if graphics_status == "observed" else None,
+            input_devices if input_status == "observed" else None,
+            memory if memory_status == "observed" else None,
         )
     )
     collector_errors = sum(1 for entry in command_entries if entry["status"] != "observed")
@@ -252,11 +272,35 @@ def analyze_bundle(
             "storage",
             source_command_ids={"properties.getprop"},
         ),
+        "network": _section_payload(
+            network_status,
+            asdict(network) if network else {},
+            command_entries,
+            "network",
+        ),
+        "graphics": _section_payload(
+            graphics_status,
+            asdict(graphics) if graphics else {},
+            command_entries,
+            "graphics",
+        ),
+        "input": _section_payload(
+            input_status,
+            asdict(input_devices) if input_devices else {},
+            command_entries,
+            "input",
+        ),
+        "memory": _section_payload(
+            memory_status,
+            asdict(memory) if memory else {},
+            command_entries,
+            "memory",
+        ),
     }
     for section_name, section in sections.items():
         section["profile_comparison_status"] = _profile_comparison_status(comparisons, section_name)
     report = {
-        "schema_version": "4.0",
+        "schema_version": "5.0",
         "analyzer_version": __version__,
         "generated_at": _timestamp(),
         "bundle_schema_version": manifest["schema_version"],
@@ -330,6 +374,10 @@ def render_markdown_report(report: dict[str, Any]) -> str:
         ("battery", "Battery and Charging Inventory"),
         ("thermal", "Thermal and Power Inventory"),
         ("storage", "Storage Inventory"),
+        ("network", "Network and Connectivity Inventory"),
+        ("graphics", "Graphics Inventory"),
+        ("input", "Input Device Inventory"),
+        ("memory", "Memory Inventory"),
     )
     for key, title in section_titles:
         _append_markdown_section(lines, title, report["sections"][key])
@@ -704,6 +752,90 @@ def _parse_storage(
     )
     has_data = bool(storage.mounts or storage.volumes or storage.partitions or storage.supported_filesystems or storage.parse_warnings)
     return storage, _parsed_section_status(entries, has_data)
+
+
+def _parse_network(
+    bundle_dir: Path,
+    commands: dict[str, dict[str, Any]],
+    collector_states: dict[str, str],
+) -> tuple[NetworkInventory | None, str]:
+    entries = _entries_by_prefix(commands, "network.")
+    if not entries:
+        return None, collector_states.get("network", "not_evaluated")
+    network = parse_network_info(
+        _observed_stdout(bundle_dir, commands.get("network.connectivity")),
+        _observed_stdout(bundle_dir, commands.get("network.ip_link")),
+        _observed_stdout(bundle_dir, commands.get("network.wifi_status")),
+        _observed_stdout(bundle_dir, commands.get("network.airplane_mode")),
+        _observed_stdout(bundle_dir, commands.get("network.bluetooth_state")),
+    )
+    has_data = bool(network.interfaces or network.transport_types or network.parse_warnings) or any(
+        value is not None
+        for key, value in asdict(network).items()
+        if key not in {"interfaces", "transport_types", "parse_warnings"}
+    )
+    return network, _parsed_section_status(entries, has_data)
+
+
+def _parse_graphics(
+    bundle_dir: Path,
+    commands: dict[str, dict[str, Any]],
+    collector_states: dict[str, str],
+) -> tuple[GraphicsInventory | None, str]:
+    entries = _entries_by_prefix(commands, "graphics.")
+    if not entries:
+        return None, collector_states.get("graphics", "not_evaluated")
+    graphics = parse_graphics_info(
+        _observed_stdout(bundle_dir, commands.get("graphics.surface_flinger")),
+        _observed_stdout(bundle_dir, commands.get("graphics.gpu")),
+        _observed_stdout(bundle_dir, commands.get("graphics.egl_property")),
+        _observed_stdout(bundle_dir, commands.get("graphics.vulkan_property")),
+    )
+    has_data = bool(graphics.parse_warnings) or any(
+        value is not None
+        for key, value in asdict(graphics).items()
+        if key != "parse_warnings"
+    )
+    return graphics, _parsed_section_status(entries, has_data)
+
+
+def _parse_input(
+    bundle_dir: Path,
+    commands: dict[str, dict[str, Any]],
+    collector_states: dict[str, str],
+) -> tuple[InputInventory | None, str]:
+    entries = _entries_by_prefix(commands, "input.")
+    if not entries:
+        return None, collector_states.get("input", "not_evaluated")
+    input_devices = parse_input_info(
+        _observed_stdout(bundle_dir, commands.get("input.dumpsys")),
+        _observed_stdout(bundle_dir, commands.get("input.proc_devices")),
+    )
+    has_data = bool(
+        input_devices.devices or input_devices.parse_warnings
+    ) or input_devices.input_service_status is not None
+    return input_devices, _parsed_section_status(entries, has_data)
+
+
+def _parse_memory(
+    bundle_dir: Path,
+    commands: dict[str, dict[str, Any]],
+    collector_states: dict[str, str],
+) -> tuple[MemoryInventory | None, str]:
+    entries = _entries_by_prefix(commands, "memory.")
+    if not entries:
+        return None, collector_states.get("memory", "not_evaluated")
+    memory = parse_memory_info(
+        _observed_stdout(bundle_dir, commands.get("memory.proc_meminfo")),
+        _observed_stdout(bundle_dir, commands.get("memory.proc_swaps")),
+        _observed_stdout(bundle_dir, commands.get("memory.low_ram_property")),
+    )
+    has_data = bool(memory.parse_warnings) or any(
+        value is not None
+        for key, value in asdict(memory).items()
+        if key != "parse_warnings"
+    )
+    return memory, _parsed_section_status(entries, has_data)
 
 
 def _section_payload(

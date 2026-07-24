@@ -1,5 +1,26 @@
 # Changelog
 
+## 0.12.0 RC 1 — tag `v0.12.0-rc.1`
+
+- Add read-only `network`, `graphics`, `input`, and `memory` collectors
+  through the stable Collector API.
+- Introduce additive evidence bundle schema `5.0` while preserving offline
+  replay and digest verification for schemas `1.0`, `2.0`, `3.0`, and `4.0`.
+- Add bounded connectivity transports/interfaces/settings state, GLES and
+  Vulkan identity, input-device identity and class summaries, and memory and
+  swap totals.
+- Add `--skip-network`, `--skip-graphics`, `--skip-input`, and
+  `--skip-memory`.
+- Add explicit opt-in profile references and mismatch rules for each Phase 5
+  section; omitted or incomplete evidence remains inventory-only.
+- Add eight synthetic Phase 5 fixture families and a committed schema `5.0`
+  replay bundle, increasing the locked corpus to 583 files.
+- Extend contextual redaction to SSIDs/BSSIDs, labeled network identifiers,
+  `LinkAddresses` lists, and `inet`/`inet6` address lines.
+- Preserve read-only collection: no network joins, scans, or probes, no
+  rendering or GPU benchmarks, no input-event sampling or injection, no
+  memory pressure, and no second full `getprop`.
+
 ## 0.11.0 RC 1 — tag `v0.11.0-rc.1`
 
 - Add read-only `audio`, `battery`, `thermal`, and `storage` collectors through

@@ -1,0 +1,5 @@
+SurfaceFlinger global state:
+GLES: Samsung Electronics Co., Ltd., Samsung Xclipse 940, OpenGL ES 3.2
+Vulkan API version: 1.3.256
+Display 4619827259835644672 HWC layers:
+  numHwLayers=4, flags=00000000

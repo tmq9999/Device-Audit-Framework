@@ -1,0 +1,1 @@
+cat: /proc/swaps: No such file or directory

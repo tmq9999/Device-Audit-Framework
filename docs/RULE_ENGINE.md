@@ -35,6 +35,9 @@ Integrity, Google One, account, or other external-service behavior.
 - Explicit Phase 4 references use `AUDIO_PROFILE_MISMATCH`,
   `BATTERY_PROFILE_MISMATCH`, `THERMAL_PROFILE_MISMATCH`, or
   `STORAGE_PROFILE_MISMATCH`.
+- Explicit Phase 5 references use `NETWORK_PROFILE_MISMATCH`,
+  `GRAPHICS_PROFILE_MISMATCH`, `INPUT_PROFILE_MISMATCH`, or
+  `MEMORY_PROFILE_MISMATCH`.
 
 Camera, sensor, and HAL observations are bounded summaries. Extra cameras,
 sensors, interfaces, capabilities, and transports do not create findings when
@@ -46,6 +49,11 @@ Audio, battery, thermal, and storage observations follow the same rule. The
 engine does not infer battery degradation, storage health, thermal quality,
 performance, authenticity, integrity, or eligibility. It does not compare
 storage UUIDs, disk names, audio effect UUIDs, or transient client identifiers.
+
+Network, graphics, input, and memory observations follow the same rule. The
+engine does not compare SSIDs, MAC or IP addresses, or link addresses (those
+are redacted before persistence) and does not infer network quality, GPU
+capability, input hardware quality, or memory performance from inventory.
 
 Finding severity and confidence describe the comparison evidence; they are
 not a device eligibility judgment. Researchers must verify the selected

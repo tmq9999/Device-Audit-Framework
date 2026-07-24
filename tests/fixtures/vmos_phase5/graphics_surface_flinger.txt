@@ -1,0 +1,4 @@
+SurfaceFlinger global state:
+GLES: Qualcomm, Adreno (TM) 640, OpenGL ES 3.0
+Display 4619827259835644672 HWC layers:
+  numHwLayers=4, flags=00000000

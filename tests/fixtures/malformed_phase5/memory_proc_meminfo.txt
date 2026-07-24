@@ -1,0 +1,3 @@
+MemTotal: twelve kB
+MemFree:  -
+SwapTotal: 100 potatoes

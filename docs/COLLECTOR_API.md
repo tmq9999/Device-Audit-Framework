@@ -1,6 +1,6 @@
 # Collector API
 
-The stable collector API version in v0.11.0-rc.1 is `1.0`.
+The stable collector API version in v0.12.0-rc.1 is `1.0`.
 
 ## Contract
 
@@ -32,9 +32,10 @@ collectors continue. A missing ADB executable remains a process-level error.
 Built-ins preserve their Phase 1/2 command IDs, argument order, timeouts,
 section names, package handling, root gate, and declaration order. Phase 3
 adds `camera`, `sensors`, and `hal`; Phase 4 adds `audio`, `battery`, `thermal`,
-and `storage`, all with stable command IDs. Do not rename an existing command
-ID or change its arguments in a maintenance release: bundle replay and report
-provenance depend on them.
+and `storage`; Phase 5 adds `network`, `graphics`, `input`, and `memory`, all
+with stable command IDs. Do not rename an existing command ID or change its
+arguments in a maintenance release: bundle replay and report provenance
+depend on them.
 
 No automatic entry-point scanning is enabled. A future application may inject
 an explicitly reviewed registry, but the default registry must remain the
@@ -42,7 +43,7 @@ frozen built-in set.
 
 ## Adding a future collector
 
-Collector additions are outside the frozen Phase 4 milestone. A future
+Collector additions are outside the frozen Phase 5 milestone. A future
 contributor must:
 
 1. document every new command and its read-only rationale;
@@ -52,14 +53,18 @@ contributor must:
 4. preserve redaction before persistence;
 5. ensure failure is recorded without aborting other collectors; and
 6. add an offline replay test and update architecture documentation; and
-7. preserve schemas `1.0`, `2.0`, `3.0`, and `4.0` replay compatibility.
+7. preserve schemas `1.0`, `2.0`, `3.0`, `4.0`, and `5.0` replay compatibility.
 
 The Phase 3 built-ins use this API for read-only camera, sensor, and HAL
 commands. Phase 4 uses it for metadata-only audio, battery, thermal/power, and
 storage commands; it never plays or records audio, samples sensors, writes
-power state, benchmarks storage, or runs a second full `getprop`. Collectors
-mark version-dependent unavailable commands as `unsupported`; the registry
-records those results and continues with later collectors.
+power state, benchmarks storage, or runs a second full `getprop`. Phase 5 uses
+it for read-only network, graphics, input, and memory commands; it never
+joins or scans networks, renders frames, injects or samples input events, or
+applies memory pressure, and its `getprop` use remains limited to single named
+properties. Collectors mark version-dependent unavailable commands as
+`unsupported`; the registry records those results and continues with later
+collectors.
 
 Do not use `shell=True`, host-shell interpolation, arbitrary command strings,
 mutating Android commands, or recursive sensitive filesystem collection.

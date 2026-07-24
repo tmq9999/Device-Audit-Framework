@@ -15,8 +15,12 @@ from device_audit.collectors import (
     CAMERA_COMMANDS,
     DEFAULT_PACKAGES,
     DISPLAY_COMMANDS,
+    GRAPHICS_COMMANDS,
     HAL_COMMANDS,
+    INPUT_COMMANDS,
     MAGISK_COMMANDS,
+    MEMORY_COMMANDS,
+    NETWORK_COMMANDS,
     PHASE_ONE_COMMANDS,
     ROOT_RUNTIME_COMMANDS,
     RUNTIME_COMMANDS,
@@ -39,7 +43,7 @@ class CaptureOutcome:
 
 @dataclass(frozen=True)
 class CaptureOptions:
-    """Optional Phase 2-4 collectors selected for one capture."""
+    """Optional Phase 2-5 collectors selected for one capture."""
 
     skip_display: bool = False
     skip_telephony: bool = False
@@ -53,6 +57,10 @@ class CaptureOptions:
     skip_battery: bool = False
     skip_thermal: bool = False
     skip_storage: bool = False
+    skip_network: bool = False
+    skip_graphics: bool = False
+    skip_input: bool = False
+    skip_memory: bool = False
     packages: tuple[str, ...] = ()
 
 
@@ -113,6 +121,10 @@ def capture_evidence(
         "battery": _collector_state(commands, "battery", options.skip_battery),
         "thermal": _collector_state(commands, "thermal", options.skip_thermal),
         "storage": _collector_state(commands, "storage", options.skip_storage),
+        "network": _collector_state(commands, "network", options.skip_network),
+        "graphics": _collector_state(commands, "graphics", options.skip_graphics),
+        "input": _collector_state(commands, "input", options.skip_input),
+        "memory": _collector_state(commands, "memory", options.skip_memory),
     }
     bundle_path = write_evidence_bundle(
         output_dir=output_dir,
@@ -120,7 +132,7 @@ def capture_evidence(
         commands=commands,
         additional_sensitive_values=(device.serial for device in devices),
         collector_states=collector_states,
-        schema_version="4.0",
+        schema_version="5.0",
     )
     collector_errors = sum(
         (command.status_override or command_status(command.result)) != "observed" for command in commands
@@ -144,6 +156,10 @@ def _collection_request(options: CaptureOptions, timeout_seconds: int) -> Collec
             ("battery", options.skip_battery),
             ("thermal", options.skip_thermal),
             ("storage", options.skip_storage),
+            ("network", options.skip_network),
+            ("graphics", options.skip_graphics),
+            ("input", options.skip_input),
+            ("memory", options.skip_memory),
         )
         if skipped
     )
@@ -183,8 +199,12 @@ __all__ = [
     "DEFAULT_PACKAGES",
     "DISPLAY_COMMANDS",
     "CAMERA_COMMANDS",
+    "GRAPHICS_COMMANDS",
     "HAL_COMMANDS",
+    "INPUT_COMMANDS",
     "MAGISK_COMMANDS",
+    "MEMORY_COMMANDS",
+    "NETWORK_COMMANDS",
     "PHASE_ONE_COMMANDS",
     "ROOT_RUNTIME_COMMANDS",
     "RUNTIME_COMMANDS",

@@ -1,0 +1,11 @@
+I: Bus=0006 Vendor=0000 Product=0000 Version=0100
+N: Name="virtio_input_multi_touch_1"
+P: Phys=synthetic/input0
+H: Handlers=event1
+B: ABS=661800000000000
+
+I: Bus=0006 Vendor=0000 Product=0000 Version=0100
+N: Name="qwerty2"
+P: Phys=synthetic/input0
+H: Handlers=kbd event2
+B: KEY=1c0000000000000

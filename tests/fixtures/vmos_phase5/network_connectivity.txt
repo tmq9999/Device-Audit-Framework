@@ -1,0 +1,6 @@
+Connectivity service status: available
+Networks: 1
+NetworkAgentInfo [WIFI () - 100]
+  Transports: WIFI
+  LinkAddresses: [ 10.0.2.15/24 ]
+  SSID: "VirtualWifi"

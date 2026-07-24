@@ -18,10 +18,16 @@ from device_audit.models import (
     DisplayInfo,
     DisplayMode,
     FilesystemSupport,
+    GraphicsInventory,
     HalInterface,
     HalInventory,
+    InputDevice,
+    InputInventory,
     KernelInfo,
     MagiskInfo,
+    MemoryInventory,
+    NetworkInterface,
+    NetworkInventory,
     PackageInfo,
     RuntimeMarkers,
     SensorDevice,
@@ -1792,3 +1798,331 @@ def _bounded_warnings(warnings: list[str]) -> tuple[str, ...]:
     if len(unique) > _MAX_SYSTEM_SUMMARY:
         unique = unique[: _MAX_SYSTEM_SUMMARY - 1] + ["additional parse warnings truncated"]
     return tuple(unique)
+
+
+_TRANSPORT_VALUES = {
+    "CELLULAR",
+    "WIFI",
+    "BLUETOOTH",
+    "ETHERNET",
+    "VPN",
+    "WIFI_AWARE",
+    "LOWPAN",
+    "USB",
+}
+_INTERFACE_LINE_PATTERN = re.compile(
+    r"(?m)^\s*\d+:\s+([A-Za-z0-9._@-]+):\s+<([^>]*)>(.*)$"
+)
+_INPUT_CLASS_ALIASES = {
+    "TOUCH": "TOUCHSCREEN",
+    "TOUCH_MT": "TOUCHSCREEN",
+    "TOUCHSCREEN": "TOUCHSCREEN",
+    "KEYBOARD": "KEYBOARD",
+    "ALPHAKEY": "KEYBOARD",
+    "CURSOR": "MOUSE",
+    "MOUSE": "MOUSE",
+    "JOYSTICK": "GAMEPAD",
+    "GAMEPAD": "GAMEPAD",
+    "DPAD": "BUTTONS",
+    "BUTTON": "BUTTONS",
+    "BUTTONS": "BUTTONS",
+    "ROTARY_ENCODER": "ROTARY_ENCODER",
+    "SWITCH": "SWITCH",
+    "VIBRATOR": "VIBRATOR",
+}
+
+
+def parse_network_info(
+    connectivity_text: str,
+    ip_link_text: str = "",
+    wifi_status_text: str = "",
+    airplane_text: str = "",
+    bluetooth_text: str = "",
+) -> NetworkInventory:
+    """Parse bounded connectivity state without joining, scanning, or probing networks."""
+
+    warnings: list[str] = []
+    interfaces = _parse_network_interfaces(ip_link_text, warnings)
+    transports = _parse_network_transports(connectivity_text)
+    if connectivity_text.strip() and not transports and "transport" in connectivity_text.lower():
+        warnings.append("no network transports parsed")
+    if len(interfaces) > _MAX_SYSTEM_SUMMARY:
+        warnings.append(f"network interface summary truncated to {_MAX_SYSTEM_SUMMARY} items")
+    active_count = _count_or_labeled(connectivity_text, "(?:current )?(?:active )?networks?")
+    if active_count is None:
+        agent_count = len(re.findall(r"(?im)^\s*NetworkAgentInfo\b", connectivity_text))
+        active_count = agent_count or None
+    return NetworkInventory(
+        connectivity_service_status=_service_status(connectivity_text, "connectivity"),
+        active_network_count=active_count,
+        transport_types=transports,
+        interfaces=tuple(interfaces[:_MAX_SYSTEM_SUMMARY]),
+        wifi_service_status=_service_status(wifi_status_text, "wifi"),
+        wifi_enabled=_wifi_enabled(wifi_status_text),
+        airplane_mode_enabled=_settings_bool(airplane_text),
+        bluetooth_enabled=_settings_bool(bluetooth_text),
+        parse_warnings=_bounded_warnings(warnings),
+    )
+
+
+def parse_graphics_info(
+    surface_flinger_text: str,
+    gpu_text: str = "",
+    egl_property_text: str = "",
+    vulkan_property_text: str = "",
+) -> GraphicsInventory:
+    """Parse GPU identification lines without rendering or benchmarking."""
+
+    warnings: list[str] = []
+    combined = "\n".join((surface_flinger_text, gpu_text))
+    gles_vendor, gles_renderer, gles_version = _parse_gles_line(combined)
+    if surface_flinger_text.strip() and gles_vendor is None and "gles" in surface_flinger_text.lower():
+        warnings.append("no GLES identification line parsed")
+    return GraphicsInventory(
+        surface_flinger_status=_service_status(surface_flinger_text, "surfaceflinger"),
+        gles_vendor=gles_vendor,
+        gles_renderer=gles_renderer,
+        gles_version=gles_version,
+        egl_hardware=_property_value_text(egl_property_text),
+        vulkan_hardware=_property_value_text(vulkan_property_text),
+        vulkan_api_version=_bounded_text(
+            _first_match(combined, r"(?im)^\s*vulkan(?:[ _-]?api)?[ _-]?version\s*[:=]\s*([^\r\n,]+)")
+        ),
+        parse_warnings=_bounded_warnings(warnings),
+    )
+
+
+def parse_input_info(input_text: str, devices_text: str = "") -> InputInventory:
+    """Parse input-device identity without reading, sampling, or injecting events."""
+
+    warnings: list[str] = []
+    devices = _parse_dumpsys_input_devices(input_text, warnings)
+    known_names = {device.name for device in devices}
+    for device in _parse_proc_input_devices(devices_text, warnings):
+        if device.name not in known_names:
+            devices.append(device)
+            known_names.add(device.name)
+    if len(devices) > _MAX_SYSTEM_SUMMARY:
+        warnings.append(f"input device summary truncated to {_MAX_SYSTEM_SUMMARY} items")
+    bounded = tuple(devices[:_MAX_SYSTEM_SUMMARY])
+    return InputInventory(
+        input_service_status=_service_status(input_text, "input"),
+        device_count=len(bounded),
+        devices=bounded,
+        keyboard_count=sum(1 for device in bounded if "KEYBOARD" in device.classes),
+        touchscreen_count=sum(1 for device in bounded if "TOUCHSCREEN" in device.classes),
+        parse_warnings=_bounded_warnings(warnings),
+    )
+
+
+def parse_memory_info(
+    meminfo_text: str,
+    swaps_text: str = "",
+    low_ram_property_text: str = "",
+) -> MemoryInventory:
+    """Parse memory and swap totals only when /proc labels declare kB units."""
+
+    warnings: list[str] = []
+    total_kb = _meminfo_kb(meminfo_text, "MemTotal", warnings)
+    free_kb = _meminfo_kb(meminfo_text, "MemFree", warnings)
+    available_kb = _meminfo_kb(meminfo_text, "MemAvailable", warnings)
+    swap_total_kb = _meminfo_kb(meminfo_text, "SwapTotal", warnings)
+    swap_free_kb = _meminfo_kb(meminfo_text, "SwapFree", warnings)
+    if meminfo_text.strip() and total_kb is None and "memtotal" not in meminfo_text.lower():
+        warnings.append("no meminfo values parsed")
+    swap_device_count, zram_swap_present = _parse_swaps(swaps_text, warnings)
+    return MemoryInventory(
+        total_kb=total_kb,
+        free_kb=free_kb,
+        available_kb=available_kb,
+        swap_total_kb=swap_total_kb,
+        swap_free_kb=swap_free_kb,
+        swap_device_count=swap_device_count,
+        zram_swap_present=zram_swap_present,
+        low_ram_device=_bool_value(_property_value_text(low_ram_property_text)),
+        parse_warnings=_bounded_warnings(warnings),
+    )
+
+
+def _parse_network_interfaces(text: str, warnings: list[str]) -> list[NetworkInterface]:
+    interfaces: list[NetworkInterface] = []
+    seen: set[str] = set()
+    for match in _INTERFACE_LINE_PATTERN.finditer(text):
+        name = match.group(1).split("@", 1)[0]
+        if not name or name in seen:
+            continue
+        seen.add(name)
+        remainder = match.group(3)
+        flags = tuple(sorted({token for token in match.group(2).split(",") if token}))
+        state = _first_match(remainder, r"\bstate\s+([A-Z_-]+)")
+        link_type = _first_match(text, rf"(?ms){re.escape(match.group(0))}\s*\n\s*link/([A-Za-z0-9_-]+)")
+        interfaces.append(
+            NetworkInterface(
+                name=_bounded_text(name, 64) or "unknown",
+                state=state,
+                mtu=_integer_match(remainder, r"\bmtu\s+(\d+)"),
+                flags=flags[:_MAX_SYSTEM_SUMMARY],
+                link_type=_bounded_text(link_type, 32),
+                source="network.ip_link",
+            )
+        )
+    if text.strip() and not interfaces and "mtu" in text.lower():
+        warnings.append("no network interfaces parsed")
+    return sorted(interfaces, key=lambda item: _natural_sort_key(item.name))
+
+
+def _parse_network_transports(text: str) -> tuple[str, ...]:
+    values: list[str] = []
+    for match in re.finditer(r"(?im)^\s*transports?\s*[:=]\s*([^\r\n]+)", text):
+        for token in re.split(r"[,|&\s]+", match.group(1)):
+            normalized = token.strip().upper()
+            if not normalized:
+                continue
+            if normalized not in _TRANSPORT_VALUES:
+                normalized = "UNKNOWN"
+            if normalized not in values:
+                values.append(normalized)
+    return tuple(values[:_MAX_SYSTEM_SUMMARY])
+
+
+def _wifi_enabled(text: str) -> bool | None:
+    match = re.search(r"(?im)^\s*wifi\s+is\s+(enabled|disabled)\b", text)
+    if match:
+        return match.group(1).lower() == "enabled"
+    return _first_bool(text, r"(?im)^\s*wifi\s*(?:enabled)?\s*[:=]\s*(true|false|1|0)")
+
+
+def _settings_bool(text: str) -> bool | None:
+    value = text.strip().splitlines()[0].strip() if text.strip() else ""
+    if not value or value.lower() == "null":
+        return None
+    return _bool_value(value)
+
+
+def _parse_gles_line(text: str) -> tuple[str | None, str | None, str | None]:
+    match = re.search(r"(?im)^\s*GLES\s*[:=]\s*([^\r\n]+)", text)
+    if not match:
+        return None, None, None
+    parts = [part.strip() for part in match.group(1).split(",", 2)]
+    vendor = _bounded_text(parts[0]) if parts and parts[0] else None
+    renderer = _bounded_text(parts[1]) if len(parts) > 1 and parts[1] else None
+    version = _bounded_text(parts[2]) if len(parts) > 2 and parts[2] else None
+    return vendor, renderer, version
+
+
+def _property_value_text(text: str) -> str | None:
+    value = text.strip().splitlines()[0].strip() if text.strip() else ""
+    if not value or value.lower() in {"null", "undefined"}:
+        return None
+    if "not found" in value.lower() or "inaccessible" in value.lower():
+        return None
+    return _bounded_text(value, 96)
+
+
+def _parse_dumpsys_input_devices(text: str, warnings: list[str]) -> list[InputDevice]:
+    devices: list[InputDevice] = []
+    blocks = re.split(r"(?im)^(?=\s*Device\s+-?\d+\s*:)", text)
+    for block in blocks:
+        header = re.match(r"(?im)^\s*Device\s+(-?\d+)\s*:\s*([^\r\n]+)", block)
+        if not header:
+            continue
+        name = _bounded_text(header.group(2).strip(), 128)
+        if not name:
+            warnings.append("input device without a name skipped")
+            continue
+        identifier = _first_match(block, r"(?im)^\s*identifier\s*[:=]\s*([^\r\n]+)") or ""
+        devices.append(
+            InputDevice(
+                id=header.group(1),
+                name=name,
+                vendor_id=_first_match(identifier, r"(?i)\bvendor\s*=\s*(0x[0-9a-f]+|\d+)"),
+                product_id=_first_match(identifier, r"(?i)\bproduct\s*=\s*(0x[0-9a-f]+|\d+)"),
+                bus=_first_match(identifier, r"(?i)\bbus\s*=\s*(0x[0-9a-f]+|\d+)"),
+                classes=_normalize_input_classes(_first_match(block, r"(?im)^\s*classes\s*[:=]\s*([^\r\n]+)")),
+                external=_first_bool(block, r"(?im)^\s*is?_?external\s*[:=]\s*(true|false|1|0)"),
+                source="input.dumpsys",
+            )
+        )
+    if text.strip() and not devices and re.search(r"(?im)^\s*Device\s+", text):
+        warnings.append("no input devices parsed from dumpsys input")
+    return devices
+
+
+def _parse_proc_input_devices(text: str, warnings: list[str]) -> list[InputDevice]:
+    devices: list[InputDevice] = []
+    for block in re.split(r"\n\s*\n", text):
+        if not block.strip():
+            continue
+        identity = re.search(
+            r"(?im)^I:\s*Bus=([0-9a-f]+)\s+Vendor=([0-9a-f]+)\s+Product=([0-9a-f]+)",
+            block,
+        )
+        name = _first_match(block, r"(?im)^N:\s*Name=\"([^\"\r\n]*)\"")
+        if name is None:
+            if identity is not None:
+                warnings.append("input device block without a name skipped")
+            continue
+        handlers = _first_match(block, r"(?im)^H:\s*Handlers=([^\r\n]+)") or ""
+        classes: list[str] = []
+        if re.search(r"\bkbd\b", handlers):
+            classes.append("KEYBOARD")
+        if re.search(r"\bmouse\d*\b", handlers):
+            classes.append("MOUSE")
+        if re.search(r"(?im)^B:\s*ABS=", block):
+            classes.append("TOUCHSCREEN")
+        devices.append(
+            InputDevice(
+                id=None,
+                name=_bounded_text(name, 128) or "unknown",
+                vendor_id=identity.group(2).lower() if identity else None,
+                product_id=identity.group(3).lower() if identity else None,
+                bus=identity.group(1).lower() if identity else None,
+                classes=tuple(sorted(set(classes))),
+                external=None,
+                source="input.proc_devices",
+            )
+        )
+    return devices
+
+
+def _normalize_input_classes(value: str | None) -> tuple[str, ...]:
+    if not value:
+        return ()
+    normalized: set[str] = set()
+    for token in re.split(r"[,|\s]+", value):
+        cleaned = re.sub(r"[^A-Z_]", "", token.upper())
+        if not cleaned:
+            continue
+        normalized.add(_INPUT_CLASS_ALIASES.get(cleaned, "UNKNOWN"))
+    return tuple(sorted(normalized))
+
+
+def _meminfo_kb(text: str, label: str, warnings: list[str]) -> int | None:
+    match = re.search(rf"(?im)^\s*{label}\s*:\s*([^\r\n]+)$", text)
+    if not match:
+        return None
+    value = re.fullmatch(r"\s*(\d+)\s*kB\s*", match.group(1))
+    if not value:
+        warnings.append(f"malformed {label} value")
+        return None
+    return int(value.group(1))
+
+
+def _parse_swaps(text: str, warnings: list[str]) -> tuple[int | None, bool | None]:
+    if not text.strip():
+        return None, None
+    if re.search(r"(?i)no such file|permission denied|not found|inaccessible", text):
+        return None, None
+    entries: list[str] = []
+    malformed = False
+    for line in text.splitlines()[1:]:
+        if not line.strip():
+            continue
+        columns = line.split()
+        if len(columns) < 3 or not columns[0].startswith("/"):
+            malformed = True
+            continue
+        entries.append(columns[0])
+    if malformed:
+        warnings.append("malformed swap table entries skipped")
+    return len(entries), any("zram" in entry.lower() for entry in entries)
